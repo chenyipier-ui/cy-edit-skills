@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "jianying_multisource_plan",
+  "project": {
+    "name": "口播_v1"
+  },
+  "sources": {
+    "A": {
+      "source_meta": "A/source_meta.json",
+      "transcript": "A/transcript.json"
+    }
+  },
+  "content_title": [
+    "先理清主线",
+    "再删除重复"
+  ],
+  "cover_title": [
+    "剪短一点",
+    "就讲清楚了吗"
+  ],
+  "chapters": [],
+  "segments": [
+    {
+      "source": "A",
+      "evidence_unit_ids": [
+        "u000001",
+        "u000002"
+      ],
+      "reason": "保留完整主张，删掉无新信息的复述"
+    }
+  ]
+}

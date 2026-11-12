@@ -1,0 +1,57 @@
+{
+  "mode": "multi",
+  "reviewed_sources": [
+    "s0001"
+  ],
+  "excluded_sources": {},
+  "candidates": [
+    {
+      "id": "topic-01",
+      "title": "先设计采访目的",
+      "thesis": "先知道想理解什么",
+      "unit_ids": [
+        "s0001_u000001"
+      ],
+      "excluded": [],
+      "reason": "这段已有问题与解释，可独立理解",
+      "content_title": [
+        "先理清内容主线",
+        "再删除重复表达"
+      ],
+      "cover_title": [
+        "剪短一点",
+        "就一定讲清了吗"
+      ],
+      "chapters": [
+        {
+          "title": "主线",
+          "start": "s0001_u000001"
+        }
+      ]
+    },
+    {
+      "id": "topic-02",
+      "title": "怎样追问细节",
+      "thesis": "用具体事实接着问",
+      "unit_ids": [
+        "s0001_u000002"
+      ],
+      "excluded": [],
+      "reason": "这段包含完整例子；实际材料不完整时应降为 needs_material",
+      "content_title": [
+        "先理清内容主线",
+        "再删除重复表达"
+      ],
+      "cover_title": [
+        "剪短一点",
+        "就一定讲清了吗"
+      ],
+      "chapters": [
+        {
+          "title": "主线",
+          "start": "s0001_u000002"
+        }
+      ]
+    }
+  ]
+}

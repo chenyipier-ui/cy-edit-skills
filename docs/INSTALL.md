@@ -1,0 +1,54 @@
+# 安装与首次使用
+
+## 使用 Skills CLI
+
+需要 Node.js 22.20 或更高版本。以下命令遵循 [Skills CLI 官方用法](https://github.com/vercel-labs/skills)。
+
+```bash
+# 选择 Skill 和 Agent；默认安装到当前项目
+npx skills add chenyipier-ui/cy-edit-skills
+
+# 只装口播精剪
+npx skills add chenyipier-ui/cy-edit-skills --skill cy-edit-shortvideo
+
+# 只装长内容版
+npx skills add chenyipier-ui/cy-edit-skills --skill cy-edit-longvideo
+```
+
+需要所有项目可用时，加 `-g`。请按实际使用的 Agent 选择目标；安装成功不等于该 Agent 已完成真实素材剪辑验证。
+
+## 下载 ZIP 安装
+
+从 [v2.3.0 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.3.0) 下载：
+
+- `cy-edit-shortvideo-v2.3.0.zip`：口播精剪。
+- `cy-edit-longvideo-v2.3.0.zip`：长内容整理与剪辑。
+- `cy-edit-skills-v2.3.0.zip`：两套 Skill 合集。
+
+把解压得到的 `cy-edit-shortvideo` 或 `cy-edit-longvideo` 文件夹放进 Agent 的 skills 目录，确保 `SKILL.md` 位于该文件夹第一层。保留完整目录，包括脚本、references、LICENSE 和 THIRD_PARTY.md。目录位置按 Agent 的安装说明选择；也可以让 Agent 按本机配置完成安装。
+
+发布页的 `SHA256SUMS` 提供文件校验值。macOS 可用 `shasum -a 256 文件.zip`，Windows PowerShell 可用 `Get-FileHash 文件.zip -Algorithm SHA256`，与清单逐项比较。
+
+## 运行环境
+
+用户提供素材和要求，Agent 负责运行命令。两套 Skill 的入口不同：
+
+| Skill | macOS | Windows |
+| --- | --- | --- |
+| 口播精剪 | `sh "Skill目录/scripts/run.sh"` | `"Skill目录\scripts\run.cmd"` |
+| 长内容版 | `sh "Skill目录/run.sh"` | `"Skill目录\run.cmd"` |
+
+首次缺依赖时自动准备专用 Python 3.12 环境和媒体工具。默认转写使用 large-v3-turbo 系列模型；Apple Silicon 可走 MLX，其他目标环境走 faster-whisper。具体入口、回退和离线接口见两套 Skill 自带的环境说明：
+
+- [口播环境](../skills/cy-edit-shortvideo/references/import-and-environment.md)
+- [长内容环境](../skills/cy-edit-longvideo/references/environment.md)
+
+首次下载需要网络和磁盘空间，模型与长素材分析还会占用额外空间。已提供 SRT 可以减少源素材转写，但成片复查仍可能需要识别模型。不能把“已下载代码”视为“所有运行依赖已具备”。
+
+代码提供本地媒体处理与语音识别路线；素材文稿是否发送给云端模型取决于你所使用的 Agent 和配置。本仓库不替代 Agent 的数据处理设置。
+
+## 经验与更新
+
+两套运行环境分别保存，两套 Skill 的经验库共享：macOS 默认在 `~/.cy-edit/shared/experience/`，Windows 默认在 `%APPDATA%\cy-edit\shared\experience\`。可用 `CY_EDIT_EXPERIENCE_DIR` 指定位置。不要把个人经验库提交到公开仓库。
+
+更新前保留自己修改过的 Skill 副本，避免覆盖私人改动。项目工作目录、原片、生成的工程依赖和经验库均与本仓库分开保存。新版本以 GitHub Release 和标签为准；当前 2.3.0 是公开测试版。

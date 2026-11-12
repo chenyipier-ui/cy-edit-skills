@@ -1,0 +1,36 @@
+{
+  "mode": "single",
+  "reviewed_sources": [
+    "s0001"
+  ],
+  "excluded_sources": {},
+  "candidates": [
+    {
+      "id": "main",
+      "title": "第一次采访怎样问到具体故事",
+      "thesis": "先明确问题，再用事实和细节追问",
+      "unit_ids": [
+        "s0001_u000001",
+        "s0001_u000002"
+      ],
+      "excluded": [
+        "不相关的设备闲聊"
+      ],
+      "reason": "保留方法与例子，合并重复解释",
+      "content_title": [
+        "先理清内容主线",
+        "再删除重复表达"
+      ],
+      "cover_title": [
+        "剪短一点",
+        "就一定讲清了吗"
+      ],
+      "chapters": [
+        {
+          "title": "主线",
+          "start": "s0001_u000001"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+name: Release checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic:
+    name: Structure and synthetic FCPXML
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          python -m pip install av==16.0.1
+      - name: Check isolated synthetic workflows
+        run: python tests/run_checks.py --output "$RUNNER_TEMP/cy-edit-checks"
+      - name: Preserve synthetic test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-check-logs
+          path: |
+            ${{ runner.temp }}/cy-edit-checks/*.log
+            ${{ runner.temp }}/cy-edit-checks/result.json
+
+  powershell-syntax:
+    name: Windows PowerShell syntax only
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse entrypoints without executing installers
+        shell: powershell
+        run: |
+          $failed = $false
+          Get-ChildItem skills -Recurse -Filter *.ps1 | ForEach-Object {
+            $parseErrors = $null
+            $tokens = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Output $_ }
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+          Write-Output 'PowerShell syntax passed; installation and Jianying on Windows remain untested.'

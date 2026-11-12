@@ -1,0 +1,50 @@
+{
+  "mode": "single",
+  "reviewed_sources": [
+    "s0001"
+  ],
+  "excluded_sources": {},
+  "editing": {
+    "compress": true,
+    "punctuation": "spoken"
+  },
+  "candidates": [
+    {
+      "title": "用具体例子解释选择",
+      "thesis": "重要判断需要细节支持",
+      "unit_ids": [
+        "s0001_u000001",
+        "s0001_u000002"
+      ],
+      "excluded": [
+        "设备闲聊"
+      ],
+      "reason": "保留解释与例子",
+      "cuts": [
+        {
+          "unit_id": "s0001_u000001",
+          "start": 12.3,
+          "end": 12.65,
+          "reason": "已核实的重复起句，保留后一次完整表达"
+        }
+      ],
+      "keep_pause_units": [
+        "s0001_u000002"
+      ],
+      "content_title": [
+        "先理清内容主线",
+        "再删除重复表达"
+      ],
+      "cover_title": [
+        "剪短一点",
+        "就一定讲清了吗"
+      ],
+      "chapters": [
+        {
+          "title": "主线",
+          "start": "s0001_u000001"
+        }
+      ]
+    }
+  ]
+}

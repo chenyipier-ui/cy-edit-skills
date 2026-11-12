@@ -1,0 +1,13 @@
+{
+  "message_id": "local_demo:item1",
+  "user_feedback": "这次开头保持原顺序",
+  "category": "correction",
+  "scope": "project",
+  "problem": "开头改变了叙述顺序",
+  "action": "恢复原顺序",
+  "lesson": "本项目保留原顺序",
+  "applies_when": "本项目当前版本",
+  "does_not_apply_when": "用户重新授权重排",
+  "verification": "pending",
+  "operation": "record"
+}

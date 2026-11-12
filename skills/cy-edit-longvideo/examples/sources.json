@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "s0001",
+      "path": "素材/原片一.mov",
+      "label": "第一次采访"
+    },
+    {
+      "id": "s0002",
+      "path": "素材/原片二.mp4",
+      "label": "补充讲述"
+    }
+  ]
+}

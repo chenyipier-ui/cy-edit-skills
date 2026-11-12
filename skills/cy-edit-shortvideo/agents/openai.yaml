@@ -1,0 +1,4 @@
+interface:
+  display_name: "cy-edit-shortvideo"
+  short_description: "清理重复与剪口，复查成片，交付字幕标题可编辑的单个工程"
+  default_prompt: "使用 $cy-edit-shortvideo 处理这些素材，从内容判断剪法，复查后交付一个含字幕、标题和底部进度条的 FCPXML，并逐轮保存反馈。"

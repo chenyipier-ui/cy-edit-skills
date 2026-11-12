@@ -1,0 +1,58 @@
+{
+  "schema_version": 3,
+  "sources_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "transcript_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "proposal_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "generation_signature": "0000000000000000000000000000000000000000000000000000000000000000",
+  "quality": {
+    "content": false,
+    "speaker": false,
+    "boundary": false,
+    "captions": false
+  },
+  "warnings": [
+    "示例，不是已核实的实际素材"
+  ],
+  "outputs": [
+    {
+      "id": "main",
+      "title": "示例成片",
+      "segments": [
+        {
+          "id": "s00001",
+          "source_id": "s0001",
+          "in_seconds": 10.0,
+          "out_seconds": 12.0,
+          "unit_ids": [
+            "s0001_u000001"
+          ],
+          "timeline_in_frame": 0,
+          "duration_frames": 50
+        }
+      ],
+      "captions": [
+        {
+          "in_frame": 0,
+          "out_frame": 50,
+          "text": "示例文字",
+          "unit_ids": [
+            "s0001_u000001"
+          ]
+        }
+      ],
+      "edits": [],
+      "duration_frames": 50,
+      "packaging": {
+        "content_title": [
+          "先理清主线",
+          "再删除重复"
+        ],
+        "cover_title": [
+          "剪短一点",
+          "就讲清了吗"
+        ],
+        "chapters": []
+      }
+    }
+  ]
+}

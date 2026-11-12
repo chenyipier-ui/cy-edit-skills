@@ -1,0 +1,21 @@
+{
+  "message": "第三段删掉；以后我的口述都保留自然停顿。",
+  "items": [
+    {
+      "text": "第三段删掉",
+      "scope": "project",
+      "action": "删除第三段并出新版本"
+    },
+    {
+      "text": "以后我的口述都保留自然停顿",
+      "scope": "user",
+      "category": "preference",
+      "preference_key": "speech.pause_style",
+      "authorization": "以后我的口述都保留自然停顿",
+      "lesson": "保留自然停顿",
+      "applies_when": "用户的长口述内容",
+      "does_not_apply_when": "用户本次明确另有节奏要求",
+      "action": "后续按适用范围考虑"
+    }
+  ]
+}

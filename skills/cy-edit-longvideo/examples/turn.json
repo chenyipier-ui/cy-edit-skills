@@ -1,0 +1,9 @@
+{
+  "turn_id": "local_demo",
+  "user_message_ids": [
+    "local_demo"
+  ],
+  "feedback_message_ids": [
+    "local_demo:item1"
+  ]
+}
