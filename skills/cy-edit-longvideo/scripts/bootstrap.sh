@@ -34,7 +34,12 @@ fi
 if [ "$lve_offline" = 1 ]; then
   lve_python="$("$lve_uv" python find 3.12 --offline)"
 else
-  "$lve_uv" python install 3.12
+  if ! "$lve_uv" python install 3.12; then
+    # 国内网络：GitHub 下载 Python 失败时换镜像；用户已设 UV_PYTHON_INSTALL_MIRROR 时不改写。
+    if [ -n "${UV_PYTHON_INSTALL_MIRROR:-}" ]; then exit 2; fi
+    echo 'Python 官方下载失败，改用国内镜像重试' >&2
+    UV_PYTHON_INSTALL_MIRROR='https://registry.npmmirror.com/-/binary/python-build-standalone' "$lve_uv" python install 3.12
+  fi
   lve_python="$("$lve_uv" python find 3.12)"
 fi
 exec "$lve_python" "$script_dir/bootstrap.py" --python "$lve_python" "$@"

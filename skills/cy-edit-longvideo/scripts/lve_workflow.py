@@ -52,4 +52,4 @@ def build(args,config):
         plan=root/'plans'/(args.version+'.json')
         if not plan.exists():build_plan(root,plan,corrections_file=args.corrections)
         else:require(not args.corrections,'本版本计划已存在；有新的改字请使用新版本号')
-    return export_project(root,plan,args.version,config,skip_recheck=getattr(args,'skip_recheck',False))
+    return export_project(root,plan,args.version,config,skip_recheck=getattr(args,'skip_recheck',False),skip_reason=getattr(args,'recheck_skipped',None))

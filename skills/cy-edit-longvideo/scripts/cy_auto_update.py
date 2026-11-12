@@ -139,4 +139,8 @@ def start(root):
     target = resolve(root)
     if target != root:
         env = dict(os.environ, CY_EDIT_UPDATE_ACTIVE='1')
-        os.execve(sys.executable, [sys.executable, str(target / 'scripts/editor.py'), *sys.argv[1:]], env)
+        argv = [sys.executable, str(target / 'scripts/editor.py'), *sys.argv[1:]]
+        if os.name == 'nt':  # Windows exec does not replace the process; wait and pass the exit code back.
+            import subprocess
+            raise SystemExit(subprocess.call(argv, env=env))
+        os.execve(sys.executable, argv, env)

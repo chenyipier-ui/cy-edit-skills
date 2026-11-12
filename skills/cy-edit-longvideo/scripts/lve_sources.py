@@ -28,12 +28,23 @@ def content_sample(fp):
     return {k:fp[k] for k in ('size','sample_bytes','head_sha256','tail_sha256')}
 
 
+def is_cover_art(stream):
+    """MP4/M4V embedded cover pictures are video streams with disposition attached_pic; they are not footage."""
+    try:
+        from av.stream import Disposition
+        return bool(stream.disposition & Disposition.attached_pic)
+    except Exception:
+        return False
+
+
 def inspect_media(path):
     import av
     path=Path(path).expanduser().resolve();require(path.is_file(),f'媒体不存在：{path}')
     with av.open(str(path)) as c:
-        require(len(c.streams.video)==1,'多视频流需先明确所用画面；多机位请分别提供文件')
-        v=c.streams.video[0]
+        videos=[s for s in c.streams.video if not is_cover_art(s)]
+        require(videos,'没有可用的视频画面（只有封面图）')
+        require(len(videos)==1,'多视频流需先明确所用画面；多机位请分别提供文件')
+        v=videos[0]
         average=v.average_rate
         nominal=v.base_rate or getattr(v,'guessed_rate',None) or average
         require(nominal and nominal>0,'没有可用名义帧率；请明确素材时间基准')
@@ -46,7 +57,7 @@ def inspect_media(path):
         rotation=v.metadata.get('rotate')
         orientation_status='metadata_only'
         try:
-            first=next(c.decode(video=0),None)
+            first=next(c.decode(v),None)
             if first is not None:
                 rotation=str(getattr(first,'rotation',rotation or 0));orientation_status='first_frame_metadata'
                 if first.pts is not None:

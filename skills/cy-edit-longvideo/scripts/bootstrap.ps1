@@ -35,6 +35,12 @@ if (!(Test-Path -LiteralPath $LveUv)) {
 if ($LveOffline) { $LvePython = & $LveUv python find 3.12 --offline }
 else {
     & $LveUv python install 3.12
+    if ($LASTEXITCODE -ne 0 -and !$env:UV_PYTHON_INSTALL_MIRROR) {
+        # Mainland China networks: retry the Python download through a mirror unless the user set one.
+        Write-Warning 'Python download failed; retrying through a mirror.'
+        $env:UV_PYTHON_INSTALL_MIRROR = 'https://registry.npmmirror.com/-/binary/python-build-standalone'
+        & $LveUv python install 3.12
+    }
     if ($LASTEXITCODE -ne 0) { throw 'Managed Python installation failed.' }
     $LvePython = & $LveUv python find 3.12
 }

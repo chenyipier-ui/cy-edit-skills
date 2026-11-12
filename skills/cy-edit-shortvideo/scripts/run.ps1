@@ -14,5 +14,7 @@ if (-not (Test-Path $pyPath)) {
   & $uvPath venv (Join-Path $dataRoot 'venv') --python 3.12 --seed
   if ($LASTEXITCODE -ne 0) { throw 'Python 3.12 环境创建失败' }
 }
+# PowerShell 5.1 在 Stop 模式下会把原生程序写到 stderr 的进度当成错误中断；成败只看退出码。
+$ErrorActionPreference = 'Continue'
 & $pyPath (Join-Path $skillRoot 'editor.py') @args
 exit $LASTEXITCODE

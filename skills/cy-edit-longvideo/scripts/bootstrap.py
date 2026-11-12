@@ -14,15 +14,48 @@ from lve_models import backend_name, model_name
 
 BASE=['imageio-ffmpeg==0.6.0','av==16.0.1']
 BACKENDS={'faster':['faster-whisper==1.2.1'],'mlx':['mlx-whisper==0.4.3'],'none':[]}
+# 国内网络：官方源失败时自动换镜像。用户设置的 PIP_INDEX_URL / HF_ENDPOINT 优先，且不再被改写。
+PIP_MIRRORS=['https://pypi.tuna.tsinghua.edu.cn/simple','https://mirrors.aliyun.com/pypi/simple/']
+HF_MIRROR='https://hf-mirror.com'
 
-def execute(args, logfile):
+def execute(args, logfile, check=True):
     logfile.parent.mkdir(parents=True,exist_ok=True)
     with logfile.open('a',encoding='utf-8') as log:
         p=subprocess.Popen([str(x) for x in args],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf-8',errors='replace')
         for line in p.stdout:
             print(line,end='',file=sys.stderr,flush=True);log.write(line);log.flush()
         code=p.wait()
-    require(code==0,f'配置步骤失败，日志：{logfile}。修复网络／权限后重跑原入口继续。')
+    if check:require(code==0,f'配置步骤失败，日志：{logfile}。修复网络／权限后重跑原入口继续。')
+    return code
+
+def pip_install(command, logfile):
+    """Official PyPI first, then domestic mirrors; an explicit PIP_INDEX_URL is used as-is."""
+    if os.environ.get('PIP_INDEX_URL'):return execute(command,logfile)
+    if execute(command,logfile,check=False)==0:return 0
+    for mirror in PIP_MIRRORS:
+        print(f'PyPI 官方源安装失败，改用镜像 {mirror} 重试',file=sys.stderr,flush=True)
+        if execute(command+['--index-url',mirror],logfile,check=False)==0:return 0
+    require(False,f'依赖安装失败（官方源与镜像 {", ".join(PIP_MIRRORS)} 都未成功），日志：{logfile}。可设置 PIP_INDEX_URL 指定可用源后重跑原入口。')
+
+def hf_reachable(timeout=5.0):
+    import urllib.request
+    try:urllib.request.urlopen(urllib.request.Request('https://huggingface.co',method='HEAD'),timeout=timeout);return True
+    except Exception:return False
+
+def download_model(runtime, model, cache, offline):
+    """snapshot_download honors HF_ENDPOINT; try hf-mirror.com when huggingface.co fails or is unreachable."""
+    code='from huggingface_hub import snapshot_download;import sys;print(snapshot_download(repo_id=sys.argv[1],cache_dir=sys.argv[2],local_files_only=sys.argv[3]=="1"))'
+    fetch=lambda:run([runtime,'-c',code,model,cache,'1' if offline else '0']).strip().splitlines()[-1]
+    if offline or os.environ.get('HF_ENDPOINT'):return fetch()
+    endpoints=[None,HF_MIRROR] if hf_reachable() else [HF_MIRROR,None]
+    errors=[]
+    for endpoint in endpoints:
+        if endpoint:os.environ['HF_ENDPOINT']=endpoint;print(f'模型改从镜像 {endpoint} 下载',file=sys.stderr,flush=True)
+        else:os.environ.pop('HF_ENDPOINT',None)
+        try:return fetch()
+        except UserError as exc:errors.append(f"{endpoint or 'huggingface.co'}：{str(exc)[-600:]}")
+        finally:os.environ.pop('HF_ENDPOINT',None)
+    require(False,'模型下载失败（官方与 hf-mirror.com 都未成功）。可设置 HF_ENDPOINT 指定可用镜像后重跑。\n'+'\n'.join(errors))
 
 def setup(args):
     data=state_dir(args.state_dir);system=platform.system();machine=platform.machine().lower()
@@ -31,7 +64,7 @@ def setup(args):
     require(system!='Windows' or machine in ('amd64','x86_64'),'Windows 原生 ARM/32 位不属于当前自动配置目标；需要单独适配或经确认的 x64 环境')
     require(backend!='mlx' or (system=='Darwin' and machine in ('arm64','aarch64')),'MLX 只支持 Apple Silicon')
     planned={'system':system,'machine':machine,'backend':backend,'dependencies':BASE+BACKENDS[backend],
-             'state_dir':str(data),'python_target':'3.12','network':'官方 uv/Python、PyPI 依赖和公开模型；本地视频不上传'}
+             'state_dir':str(data),'python_target':'3.12','network':'官方 uv/Python、PyPI 依赖和公开模型（失败时自动换国内镜像，可用 PIP_INDEX_URL/HF_ENDPOINT 指定）；本地视频不上传'}
     if args.plan:return planned
     data.mkdir(parents=True,exist_ok=True)
     os.environ['PIP_CACHE_DIR']=str(data/'cache/pip')
@@ -51,7 +84,8 @@ def setup(args):
             command+=['--no-index']
             if args.wheelhouse:command+=['--find-links',str(Path(args.wheelhouse).expanduser().resolve())]
         command+=BASE+BACKENDS[backend]
-        execute(command,data/'logs/setup.log')
+        if args.offline:execute(command,data/'logs/setup.log')
+        else:pip_install(command,data/'logs/setup.log')
         modules='import av,imageio_ffmpeg'+(';import ctranslate2,faster_whisper' if backend=='faster' else ';import mlx_whisper' if backend=='mlx' else '')
         try:run([runtime,'-c',modules])
         except UserError:
@@ -70,8 +104,7 @@ def setup(args):
             model=model_name(backend,args.model)
             if Path(model).expanduser().is_dir():model_path=str(Path(model).expanduser().resolve())
             else:
-                code='from huggingface_hub import snapshot_download;import sys;print(snapshot_download(repo_id=sys.argv[1],cache_dir=sys.argv[2],local_files_only=sys.argv[3]=="1"))'
-                model_path=run([runtime,'-c',code,model,data/'models','1' if args.offline else '0']).strip().splitlines()[-1]
+                model_path=download_model(runtime,model,data/'models',args.offline)
             require(Path(model_path).is_dir(),'模型下载未完成')
             if backend=='faster':require((Path(model_path)/'model.bin').is_file(),'模型缺少 model.bin')
             config.update(model=model,model_path=model_path,model_revision=Path(model_path).name,model_download='complete')

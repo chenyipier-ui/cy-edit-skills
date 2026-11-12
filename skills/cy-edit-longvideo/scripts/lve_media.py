@@ -96,7 +96,7 @@ def xml_document(project,output,asset_dir):
     node=ET.SubElement(event,'project',name=output['title']);seq=ET.SubElement(node,'sequence',format='projectFormat',duration=time_string(output['duration_frames']*frame),tcStart='0s',tcFormat='NDF',audioLayout='stereo',audioRate='48k')
     spine=ET.SubElement(seq,'spine');hosts=[]
     for s in output['segments']:
-        source=project['sources'][s['source_id']];m=source['working'];origin=Fraction(str(m['start_seconds']));source_start=origin+Fraction(str(s['in_seconds']))
+        source=project['sources'][s['source_id']];m=source['working'];origin=Fraction(str(m['start_seconds']));source_start=origin+Fraction(round(Fraction(str(s['in_seconds']))*fps),1)/fps  # in_seconds 来自 帧号/fps 的浮点：还原到帧，避免 12366666666666667/1000000000000000s 这类 FCP 读不了的时间
         clip=ET.SubElement(spine,'asset-clip',ref=refs[s['source_id']],name=s['id'],offset=time_string(s['timeline_in_frame']*frame),start=time_string(source_start),duration=time_string(s['duration_frames']*frame))
         hosts.append({'node':clip,'id':s['id'],'unit_ids':s['unit_ids'],'start':source_start,'offset':s['timeline_in_frame']*frame,'duration':s['duration_frames']*frame})
         if len(m['audios'])>1:
@@ -115,7 +115,10 @@ def xml_document(project,output,asset_dir):
     return xml,notes
 
 
-def export_project(directory,plan_file,version,config,skip_recheck=False):
+PENDING_LISTEN='成片复查未完成，待回听'
+
+
+def export_project(directory,plan_file,version,config,skip_recheck=False,skip_reason=None):
     identifier(version);root,p,plan,warnings=validate_plan(directory,plan_file);destination=root/'deliveries'/version
     require(not destination.exists(),'交付版本已存在，请使用新版本号')
     records=root/'records'/version;require(not records.exists(),'编译记录版本已存在，请用新版本号')
@@ -130,13 +133,17 @@ def export_project(directory,plan_file,version,config,skip_recheck=False):
     from lve_final_asr import recheck_asr
     documents=[];reviews=[];issues=[];fps=Fraction(p['timeline']['fps'])
     report={'version':version,'status':'awaiting_content_review','outputs':[],'editor_import':'not_run','user_acceptance':'pending'}
+    if skip_recheck:
+        # 跳过不是通过：交付记录、复查文件和返回结果都写明待回听。
+        report['recheck']={'status':'not_run','note':PENDING_LISTEN,'reason':skip_reason or '用户指定 --skip-recheck'}
     write_json(records/'executed-plan.json',plan);write_json(records/'source-manifest.json',p['sources'])
     for output in plan['outputs']:
         folder=records/output['id'];folder.mkdir()
         xml,notes=xml_document(p,output,root/'assets'/version/output['id']);documents.append(xml)
         atomic_text(folder/'字幕.srt',render_srt(p,output))
         measured={'status':'not_run'};asr={'status':'not_run'}
-        if not skip_recheck:
+        if skip_recheck:asr=dict(report['recheck']);measured={'status':'not_run','note':PENDING_LISTEN}
+        else:
             try:
                 preview=folder/'试听.wav';preview_warnings=build_preview(root,p,output,config,preview)
                 measured=recheck(preview,output,fps);measured.pop('acoustic',None);measured['preview_warnings']=preview_warnings
@@ -154,9 +161,14 @@ def export_project(directory,plan_file,version,config,skip_recheck=False):
         write_json(records/'delivery.json',report);os.replace(stage,destination)
     finally:
         if stage.exists():shutil.rmtree(stage)
-    atomic_text(records/'导入与依赖.md','# 导入说明\n\n剪映首页本地草稿菜单 → 导入 PR 或 FCP 工程，选择交付目录唯一的 .fcpxml。多条方案在一个交换文件里保留多个独立项目；目标软件能否导入多个项目需看实测记录。\n\n所有文字是可编辑标题；封面标题参考只在前 5 秒。原片和 assets 下的纯色进度条图片必须保留，单个 XML 不内嵌视频。换电脑须迁移并重新关联素材。内部字幕、试听与复查不作为最终交付文件。\n')
-    p['last_delivery']={'version':version,'path':str(destination),'status':report['status'],'records':str(records)};write_json(root/'project.json',p)
-    return {'message':'工程已生成，正在复查最终保留内容。','status':report['status'],'fcpxml':str(destination/filename),'reviews':reviews,'issues':issues,'experience':experience_result}
+    pending=('## '+PENDING_LISTEN+'\n\n原因：'+report['recheck']['reason']+'。没有做成片试听复测与再转写，不能当作复查通过；交付前须实际回听，或环境就绪后用新版本号重新 build。\n\n') if skip_recheck else ''
+    atomic_text(records/'导入与依赖.md','# 导入说明\n\n'+pending+'剪映首页本地草稿菜单 → 导入 PR 或 FCP 工程，选择交付目录唯一的 .fcpxml。多条方案在一个交换文件里保留多个独立项目；目标软件能否导入多个项目需看实测记录。\n\n所有文字是可编辑标题；封面标题参考只在前 5 秒。原片和 assets 下的纯色进度条图片必须保留，单个 XML 不内嵌视频。换电脑须迁移并重新关联素材。内部字幕、试听与复查不作为最终交付文件。\n')
+    p['last_delivery']={'version':version,'path':str(destination),'status':report['status'],'records':str(records)}
+    if skip_recheck:p['last_delivery']['recheck']=PENDING_LISTEN
+    write_json(root/'project.json',p)
+    result={'message':'工程已生成，正在复查最终保留内容。' if not skip_recheck else '工程已生成；'+PENDING_LISTEN+'（'+report['recheck']['reason']+'）。','status':report['status']}
+    if skip_recheck:result['recheck']=report['recheck']
+    return {**result,'fcpxml':str(destination/filename),'reviews':reviews,'issues':issues,'experience':experience_result}
 
 
 def verify_delivery(directory):

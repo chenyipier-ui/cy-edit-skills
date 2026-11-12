@@ -15,8 +15,11 @@ if dtd:
  subprocess.run(['xmllint','--noout','--dtdvalid',dtd,str(xml)],check=True);checks.append('短视频最小计划及FCPXML1.10 DTD')
 from cy_quality import write_review,record_review,frame_bounds
 assert frame_bounds(1.01,1.99,[(1.01,1.99)],25,0,3)==(25,50)
-try:frame_bounds(1.01,2.01,[(1.01,1.99)],25,1.01,3)
-except ValueError:checks.append('帧对齐保护词头词尾，拒绝扩入已删邻句')
+assert frame_bounds(1.01,2.01,[(1.01,1.99)],25,1.01,3)==(26,50)
+assert frame_bounds(1.01,1.99,[(1.01,1.99)],25,0,1.99)==(25,49)
+checks.append('邻句紧贴时只收回向外扩出的单帧，不带回已删声音')
+try:frame_bounds(1.01,2.01,[(1.01,1.99)],25,0,3,blocked=[(1.5,1.6)])
+except ValueError:checks.append('单帧调整不能避开已删区间时拒绝编译')
 else:raise AssertionError('unsafe aligned edge accepted')
 review=work/'review-final';write_review(review,[{'key':'a','text':'这是一条完整信息','start':0,'end':1}]);d=json.loads((review/'review-decisions-template.json').read_text());d['read_all']=True;d['checks']={k:True for k in d['checks']};editor.atomic_write_json(review/'decision.json',d)
 assert record_review(review,review/'decision.json')['content_review']=='recorded_pass'

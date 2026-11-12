@@ -15,7 +15,7 @@ RUN feedback --project "项目" --input "本轮反馈.json"
 
 已有原片 SRT：`RUN --backend none prepare --project "项目" --name "项目名" --media "素材目录" --transcripts "时间稿清单.json"`。清单和输入示例见 [examples](../examples/README.md)。模型切换用 prepare/build 的 --model；后端 --backend 放命令前。
 
-build 默认需要实际成片再转写。只有用户明确要求跳过时加 --skip-recheck，报告保持未完成复查。生成待审工程与最终内容/声音确认不是同一状态。
+build 默认需要实际成片再转写。只有用户明确要求跳过时加 --skip-recheck，报告保持未完成复查。转写环境准备不了时自动降级为跳过，结果里的 recheck 写明「成片复查未完成，待回听」和原因，须原样告诉用户。生成待审工程与最终内容/声音确认不是同一状态。
 
 反馈与经验采用：prepare 自动读取一次；新反馈、跨会话恢复或下一版生成前执行 `RUN experience --project "项目"` 刷新，实际选择用 --decisions-file 保存。每轮反馈一条命令，详见 [反馈](feedback.md)。
 

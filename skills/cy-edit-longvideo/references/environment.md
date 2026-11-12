@@ -6,11 +6,11 @@
 
 Windows --device auto 尝试可用的 CUDA；有显卡不等于驱动和推理库齐全。模型加载或推理失败时回退 CPU 并写明原因。不会静默安装系统级显卡驱动。CPU 是无显卡时的正常路线；用户也可选择 small，或用剪映识别后导出的原片 SRT。不要承诺某模型在所有中文素材都更准。
 
-准备阶段的字幕导入路线用 --backend none，不下载识别模型；build 的成片复查仍默认配置模型，用户明确跳过时才用 --skip-recheck。剪映操作能力与版本权限要按实际情况处理，不把“提供导入 SRT 路线”说成已自动完成剪映识别。
+准备阶段的字幕导入路线用 --backend none，不下载识别模型；build 的成片复查仍默认配置模型，用户明确跳过时才用 --skip-recheck。若模型下载失败或离线准备不了，build 不阻断：照常交付，返回结果、delivery.json 和「导入与依赖.md」标「成片复查未完成，待回听」及原因；向用户如实转达，不能说成复查通过，环境就绪后用新版本号重新 build。剪映操作能力与版本权限要按实际情况处理，不把“提供导入 SRT 路线”说成已自动完成剪映识别。
 
 Mac 数据目录默认 `~/Library/Application Support/cy-edit-longvideo/`，Windows 默认 `%LOCALAPPDATA%\cy-edit-longvideo\`。--state-dir 可指定。模型与依赖放运行数据目录；个人经验放两套 Skill 共用的经验目录（见 feedback.md）；素材分析、方案和交付放项目目录。不同用户用各自数据目录。
 
---offline 放在命令前；无缓存的首次离线配置不能凭空完成。网络、磁盘、权限不足时返回具体状态，保留下载与项目检查点。Windows VC++ 安装如触发 UAC，由用户在系统提示中处理。
+--offline 写在子命令前后都可以；无缓存的首次离线配置不能凭空完成。国内网络：PyPI 官方源失败自动改用清华、阿里镜像，Hugging Face 连不上自动改用 hf-mirror.com，托管 Python 下载失败改用 npmmirror；用户设置的 PIP_INDEX_URL、HF_ENDPOINT、UV_PYTHON_INSTALL_MIRROR 优先。项目写入锁记录进程号、主机和时间；进程被强杀留下的锁，在同机持有进程已退出时自动接管；无法识别持有者的旧锁超过 6 小时后接管。仍在运行的本机任务不因时间长而被接管。网络、磁盘、权限不足时返回具体状态，保留下载与项目检查点。Windows VC++ 安装如触发 UAC，由用户在系统提示中处理。
 
 目标平台为 macOS Apple Silicon / Intel 与 Windows 10/11 x64；特殊旧系统、原生 Windows ARM 需要另行适配。FCPXML 生成不依赖安装 Final Cut Pro。
 

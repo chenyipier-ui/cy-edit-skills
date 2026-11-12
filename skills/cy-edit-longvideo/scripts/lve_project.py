@@ -4,11 +4,11 @@ import math
 import re
 import uuid
 from pathlib import Path
-from lve_common import atomic_text,digest,identifier,now,project_at,read_json,require,sha_file,write_json
+from lve_common import UserError,atomic_text,digest,identifier,now,project_at,read_json,require,sha_file,write_json
 from lve_sources import check_sources,collect_inputs,content_sample,ensure_v2,inspect_media,prepare_sources,quick_fingerprint,sources_digest
 
 DELIVERY={'type':'clean_fcpxml','original_audio':True,'subtitles':True,'subtitle_mode':'embedded_only','editor':'jianying'}
-DEFAULT_EDITING={'compress':True,'threshold_seconds':.6,'head_seconds':.15,'tail_seconds':.2,'punctuation':'spoken','max_chars_vertical':13,'max_chars_horizontal':24}
+DEFAULT_EDITING={'compress':True,'threshold_seconds':.6,'head_seconds':.15,'tail_seconds':.2,'punctuation':'spoken','max_chars_vertical':None,'max_chars_horizontal':None}  # None：按画面宽度自动算（9:16 为 13，16:9 为 24）
 
 
 def init_project(directory,media,name,config,input_list=None,fps=None,normalization='reference',brief=None):
@@ -31,6 +31,19 @@ def init_project(directory,media,name,config,input_list=None,fps=None,normalizat
     atomic_text(root/'素材索引.md','# 素材索引\n\n默认只链接原片。输入文件数量和输出条数相互独立。时间从每份素材视频起点计。\n\n'+
         '\n'.join(f"- {sid} · {s['label']} · {s['original']['duration_seconds']:.2f} 秒 · {s['original']['path']}" for sid,s in sources.items())+'\n')
     return {'project':str(root),'source_count':len(sources),'timeline':timeline,'message':'已登记原片，不转码视频；下一步抽音频并整理内容。'}
+
+
+def read_subtitle_text(file):
+    """SRT exported on Chinese Windows is often GBK; try UTF-8 first, then GB18030 (a GBK superset)."""
+    try:data=Path(file).read_bytes()
+    except OSError as exc:raise UserError(f'无法读取时间稿：{file}：{exc}') from exc
+    if data[:2] in (b'\xff\xfe',b'\xfe\xff'):
+        try:return data.decode('utf-16')
+        except UnicodeDecodeError:pass
+    for encoding in ('utf-8-sig','utf-8','gb18030'):
+        try:return data.decode(encoding)
+        except UnicodeDecodeError:pass
+    raise UserError(f'时间稿编码无法识别：{file}。请在剪映或文本编辑器里另存为 UTF-8 编码的 SRT 后重试。')
 
 
 def srt_units(text):
@@ -74,7 +87,7 @@ def import_transcript(directory,filename,source_id=None):
     if file.suffix.lower()=='.srt':
         source_id=source_id or (next(iter(project['sources'])) if len(project['sources'])==1 else None)
         require(source_id in project['sources'],'多素材导入 SRT 需要 source-id')
-        units=srt_units(file.read_text(encoding='utf-8-sig'))
+        units=srt_units(read_subtitle_text(file))
         for u in units:u.update(id=source_id+'_'+u['id'],source_id=source_id)
         old=read_json(root/'transcript.json')['units'] if (root/'transcript.json').exists() else []
         old_by_id={u['id']:u for u in old}

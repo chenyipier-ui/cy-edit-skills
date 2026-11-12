@@ -46,11 +46,14 @@ jobs:
             ${{ runner.temp }}/cy-edit-checks/result.json
 
   powershell-syntax:
-    name: Windows PowerShell syntax only
+    name: Windows entrypoints and edit regressions
     runs-on: windows-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Parse entrypoints without executing installers
         shell: powershell
         run: |
@@ -65,4 +68,6 @@ jobs:
             }
           }
           if ($failed) { exit 1 }
-          Write-Output 'PowerShell syntax passed; installation and Jianying on Windows remain untested.'
+          Write-Output 'PowerShell entrypoint syntax passed.'
+      - name: Check locks, captions and repair cache on Windows
+        run: python -m unittest discover -s tests -p 'test_edit_regressions.py' -v

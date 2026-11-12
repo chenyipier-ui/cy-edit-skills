@@ -6,12 +6,14 @@ import json
 import os
 import platform
 import re
+import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = '2.4.0'
+VERSION = '2.5.0'
 
 class UserError(Exception):
     pass
@@ -90,19 +92,124 @@ def run(args, timeout=None):
         raise UserError(f'命令失败（{result.returncode}）：{args[0]}\n{result.stderr[-5000:]}')
     return result.stdout
 
+LOCK_STALE_SECONDS = 6 * 3600
+LOCK_OWNER = 'owner.json'
+
+def _pid_alive(pid):
+    """True/False when known; None when this platform cannot tell (fall back to age)."""
+    if not isinstance(pid, int) or pid <= 0:
+        return None
+    if os.name == 'nt':
+        try:
+            import ctypes
+            from ctypes import wintypes
+            kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+            kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel.OpenProcess.restype = wintypes.HANDLE
+            kernel.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+            kernel.GetExitCodeProcess.restype = wintypes.BOOL
+            kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+            kernel.CloseHandle.restype = wintypes.BOOL
+            handle = kernel.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+            if not handle:
+                error = ctypes.get_last_error()
+                return True if error == 5 else False if error == 87 else None
+            try:
+                code = wintypes.DWORD()
+                ok = kernel.GetExitCodeProcess(handle, ctypes.byref(code))
+                return None if not ok else code.value == 259  # STILL_ACTIVE
+            finally:
+                kernel.CloseHandle(handle)
+        except Exception:
+            return None
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return None
+    return True
+
+def _lock_snapshot(directory):
+    try:
+        return (directory / LOCK_OWNER).read_text(encoding='utf-8')
+    except OSError:
+        return None
+
+def _stale_reason(directory, snapshot):
+    """Why an existing lock may be taken over, or None while its holder may still be running."""
+    try:
+        owner = json.loads(snapshot)
+        created = float(owner['created'])
+    except (ValueError, KeyError, TypeError):
+        owner = None
+        try:
+            created = directory.stat().st_mtime
+        except OSError:
+            return None
+    age = datetime.now(timezone.utc).timestamp() - created
+    if owner and owner.get('host') == platform.node():
+        alive = _pid_alive(owner.get('pid'))
+        if alive is True:
+            return None  # A long-running job keeps its lock regardless of age.
+        if alive is False:
+            return f"持有进程 {owner.get('pid')} 已不存在"
+    if age > LOCK_STALE_SECONDS:
+        return f'锁已存在约 {age / 3600:.1f} 小时，超过 {LOCK_STALE_SECONDS // 3600} 小时上限' + ('' if owner else '（旧版锁，无持有者记录）')
+    return None
+
 @contextlib.contextmanager
 def lock(directory):
-    """Fail closed on concurrent writers; never delete a different run's lock."""
+    """Recover dead/unknown stale holders, never a known active local process."""
     directory = Path(directory)
     directory.parent.mkdir(parents=True, exist_ok=True)
+    token = os.urandom(8).hex()
+    for attempt in range(2):
+        try:
+            directory.mkdir()
+            break
+        except FileExistsError as exc:
+            snapshot = _lock_snapshot(directory)
+            reason = _stale_reason(directory, snapshot) if attempt == 0 else None
+            if not reason:
+                raise UserError(f'存在写入锁：{directory}。等待其他任务结束；已退出进程的锁会自动接管，无法识别持有者的旧锁在 {LOCK_STALE_SECONDS // 3600} 小时后接管。') from exc
+            # Rename first so that only one waiting process can win the takeover.
+            grave = directory.with_name(directory.name + '.stale-' + token)
+            try:
+                os.rename(directory, grave)
+            except OSError as exc2:
+                raise UserError(f'存在写入锁：{directory}。另一任务正在接管，请稍后重试。') from exc2
+            if _lock_snapshot(grave) != snapshot:
+                # Another process took over between our check and rename: give its fresh lock back.
+                try:
+                    os.rename(grave, directory)
+                except OSError:
+                    pass
+                raise UserError(f'存在写入锁：{directory}。另一任务刚接管，请稍后重试。') from exc
+            shutil.rmtree(grave, ignore_errors=True)
+            print(f'已接管残留写入锁 {directory}：{reason}。', file=sys.stderr, flush=True)
+    owner = {'pid': os.getpid(), 'host': platform.node(), 'created': datetime.now(timezone.utc).timestamp(), 'created_at': now(), 'token': token}
     try:
-        directory.mkdir()
-    except FileExistsError as exc:
-        raise UserError(f'存在写入锁：{directory}。等待其他任务结束；异常退出后先确认无进程再移除锁。') from exc
+        (directory / LOCK_OWNER).write_text(json.dumps(owner, ensure_ascii=False), encoding='utf-8')
+    except OSError:
+        directory.rmdir()
+        raise
     try:
         yield
     finally:
-        directory.rmdir()
+        # Never delete a lock another run has since taken over.
+        try:
+            current = json.loads((directory / LOCK_OWNER).read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            current = None
+        if current and current.get('token') == token:
+            (directory / LOCK_OWNER).unlink(missing_ok=True)
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
 
 def project_at(directory):
     root = Path(directory).expanduser().resolve()

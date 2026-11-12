@@ -22,5 +22,7 @@ if (!$CyPython -or !(Test-Path -LiteralPath $CyPython -PathType Leaf)) {
     $CyPython = (Get-Content -LiteralPath $CyPointer -Raw -Encoding UTF8).Trim()
 }
 $env:CY_EDIT_LONGVIDEO_DATA = $CyData
+# PowerShell 5.1 turns native stderr progress into terminating errors under 'Stop'; rely on the exit code.
+$ErrorActionPreference = 'Continue'
 & $CyPython (Join-Path $PSScriptRoot 'scripts\editor.py') @args
 exit $LASTEXITCODE

@@ -106,13 +106,20 @@ def frame_bounds(a,b,words,fps,lower,upper,blocked=()):
     """Quantize without cutting an included token or reaching a removed neighbour.
     Expansion is less than one frame and only into non-word, non-deleted space.
     """
-    lo=math.ceil(a*fps-1e-7);hi=math.floor(b*fps+1e-7)
+    lo=math.ceil(a*fps-1e-7);hi=math.floor(b*fps+1e-7);inner_lo,inner_hi=lo,hi
     inside=[(x,y) for x,y in words if x<b-1e-7 and y>a+1e-7]
     if inside:
         lo=min(lo,math.floor(min(x for x,y in inside)*fps+1e-7))
         hi=max(hi,math.ceil(max(y for x,y in inside)*fps-1e-7))
-    x,y=lo/fps,hi/fps
-    if x<lower-1e-6 or y>upper+1e-6 or any(min(y,v)-max(x,u)>1e-6 for u,v in blocked):
+    def clear(lo,hi):
+        x,y=lo/fps,hi/fps
+        return not(x<lower-1e-6 or y>upper+1e-6 or any(min(y,v)-max(x,u)>1e-6 for u,v in blocked))
+    if not clear(lo,hi):
+        # Whisper 的词时间常与被删的邻句首尾相接，且不在帧上：向外取整必进删除区。
+        # 只在向外扩过的一侧向内收一帧（削掉不到一帧的估计字头/字尾），绝不带回已删声音。
+        for l2,h2 in ((lo+(lo<inner_lo),hi),(lo,hi-(hi>inner_hi)),(lo+(lo<inner_lo),hi-(hi>inner_hi))):
+            if h2>l2 and clear(l2,h2):lo,hi=l2,h2;break
+    if not clear(lo,hi):
         raise ValueError('这处词边界没有足够的安全视频帧；请回听后选邻近静音、另一遍完整表达，或保留较完整的原句。不要靠微调数字切掉字头或带回已删声音。')
     return lo,hi
 
@@ -204,9 +211,14 @@ def compare_asr(captions,result,where):
     for d in dense_habits(ws):issues.append(dict(where(d['start']),kind='dense_habits',count=d['count']))
     return {'status':'measured_not_listened','issues':issues}
 
-def retranscribe(preview,folder,transcribe,chunk=480):
-    """Bounded ASR chunks with overlap, real word timestamps retained for localization."""
-    import wave
+def _recheck_cache_dir():
+    import os
+    return Path(os.environ.get('CY_EDIT_RECHECK_CACHE') or Path.home()/'.cy-edit'/'recheck-cache')
+
+def retranscribe(preview,folder,transcribe,chunk=480,key=None):
+    """Bounded ASR chunks with overlap, real word timestamps retained for localization.
+    key（后端+模型+语言）给出时，按“key + 分块 PCM 字节”缓存：返修只改了后半段，前面没变的分块不再重新识别。"""
+    import wave,hashlib
     folder=Path(folder);folder.mkdir(parents=True,exist_ok=True);segments=[]
     with wave.open(str(preview),'rb') as src:
         rate=src.getframerate();total=src.getnframes()/rate
@@ -215,7 +227,16 @@ def retranscribe(preview,folder,transcribe,chunk=480):
             path=folder/f'chunk-{index:05d}.wav';src.setpos(round(lo*rate))
             with wave.open(str(path),'wb') as dest:
                 dest.setparams(src.getparams());dest.writeframes(src.readframes(round((hi-lo)*rate)))
-            result=transcribe(path)
+            cached=None
+            if key:
+                h=hashlib.sha256(key.encode()+b'\0'+path.read_bytes()).hexdigest();cached=_recheck_cache_dir()/h[:2]/(h+'.json')
+            if cached and cached.is_file():
+                try:result=json.loads(cached.read_text(encoding='utf-8'))
+                except (OSError,ValueError):result=transcribe(path)
+            else:result=transcribe(path)
+            if cached and not cached.is_file():
+                try:cached.parent.mkdir(parents=True,exist_ok=True);save(cached,result)
+                except OSError:pass
             save(folder/f'chunk-{index:05d}.json',result)
             for seg in result.get('segments',[]):
                 words=[]

@@ -8,7 +8,7 @@ Mac 运行 `sh "Skill目录/scripts/run.sh"`；Windows 运行 `"Skill目录\scri
 
 转写默认 large-v3-turbo。Apple Silicon 使用 MLX，Intel Mac、Windows x64 使用 faster-whisper；可用 GPU 时尝试，失败回退 CPU。模型首次自动下载，后续缓存复用。`--model small` 是资源紧张时的选择，不暗中降级。已有同名原片 SRT 则直接导入；成片复查仍默认准备模型并重新识别剪后的音频。
 
-下载需要网络与足够磁盘。没有缓存的离线新机器无法凭空配置；安装或系统权限真的阻塞时只说明需要用户完成的那一件事。依赖支持的平台是 macOS 与 Windows x64；Windows ARM 与旧系统另查。Windows 路径与启动脚本已按跨平台设计，但本次未做 Windows 实机验收。
+下载需要网络与足够磁盘。没有缓存的离线新机器无法凭空配置；安装或系统权限真的阻塞时只说明需要用户完成的那一件事。依赖支持的平台是 macOS 与 Windows x64；Windows ARM 与旧系统另查。
 
 首次下载不承诺固定分钟数；报告当前步骤和实际进度。分析与复查需额外空间，大约每分钟 1.92 MB 的单声道 PCM，加上分块与版本缓存。
 

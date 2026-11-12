@@ -192,7 +192,12 @@ def build_plan(directory,out,selection_file=None,corrections_file=None):
             output['edits'] += [dict(x,source_id=sid) for x in cuts]
             if not amap.get('auto_trim_reliable'):warnings.append(f'{cid}/{sid} 声音能量不适合自动压停顿，保留原范围待听')
         require(output['segments'],'没有可交付片段；检查方案和删减范围')
-        previous=0;limit=int(policy.get('max_chars_vertical' if p['timeline']['height']>p['timeline']['width'] else 'max_chars_horizontal',16))
+        previous=0;tw,th=int(p['timeline']['width']),int(p['timeline']['height'])
+        limit=policy.get('max_chars_vertical' if th>tw else 'max_chars_horizontal')
+        if limit is None:
+            from cy_packaging import layout_for
+            limit=layout_for(tw,th)['sub_chars']
+        limit=int(limit)
         require(4<=limit<=80,'字幕长度建议使用 4–80 字')
         for u in selected:
             spans=[s for s in output['segments'] if u['id'] in s['unit_ids'] and s['source_id']==u['source_id']]
@@ -210,10 +215,12 @@ def build_plan(directory,out,selection_file=None,corrections_file=None):
                     if mapped:tokens.append((mapped[0][0],mapped[-1][1],w.get('word',w.get('text',''))))
             else:
                 tokens=[(hits[0][0],hits[-1][1],u['text'])];warnings.append(f"{cid}/{u['id']} 只有句级字幕时间，保留整句；必要时人工细分")
+            from cy_packaging import text_px
+            width=lambda t:text_px(t.strip(),1.0)  # 显示宽度：汉字 1、英文字母约 0.55，英文不会一行只剩一两个词
             lines=[];current=[];size=0
             for token in tokens:
-                if current and size+len(token[2].strip())>limit:lines.append(current);current=[];size=0
-                current.append(token);size+=len(token[2].strip())
+                if current and size+width(token[2])>limit:lines.append(current);current=[];size=0
+                current.append(token);size+=width(token[2])
                 if token[2].rstrip().endswith(('。','！','？','!','?')):lines.append(current);current=[];size=0
             if current:lines.append(current)
             for line in lines:
@@ -221,7 +228,7 @@ def build_plan(directory,out,selection_file=None,corrections_file=None):
                 if not text:continue
                 a=max(previous,line[0][0]);b=min(cursor,max(a+1,line[-1][1]));require(b>a,'字幕顺序冲突，需要核对转写时间')
                 output['captions'].append({'in_frame':a,'out_frame':b,'text':text,'unit_ids':[u['id']]});previous=b
-                if len(text)>limit:warnings.append(f'{cid}/{u["id"]} 字幕超过建议长度，缺少可靠边界时没有强行平分')
+                if width(text)>limit+.5:warnings.append(f'{cid}/{u["id"]} 字幕超过建议长度，缺少可靠边界时没有强行平分')
             if u['speaker']=='unknown':warnings.append(f'{cid}/{u["id"]} 说话人标签未确认')
             if any(f.get('kind')=='suspected_asr' for f in unit_flags(u,maps[u['source_id']])):warnings.append(f'{cid}/{u["id"]} 疑似低能量区误识别，待回听')
         output['duration_frames']=cursor;plan['outputs'].append(output)

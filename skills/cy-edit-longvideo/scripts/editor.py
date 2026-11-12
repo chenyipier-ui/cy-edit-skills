@@ -6,6 +6,7 @@ if __name__ == "__main__":
     from pathlib import Path as _CyPath
     from cy_auto_update import start as _cy_start
     _cy_start(_CyPath(__file__).resolve().parents[1])
+
 import argparse
 import contextlib
 import importlib.util
@@ -63,27 +64,52 @@ def runtime(args,data,config_file):
         needs_asr=args.command=='transcribe' or (args.command in ('build','export') and not getattr(args,'skip_recheck',False)) or (args.command=='prepare' and not args.transcripts and args.backend!='none' and not args.no_asr)
         require(not (args.command=='transcribe' and (args.backend=='none' or args.no_asr)),'已有时间稿使用 prepare --transcripts 或 import-transcript')
         desired=backend_name(args.backend or (config.get('backend') if config.get('backend') in ('faster','mlx') else 'auto'))
-        missing=config.get('schema_version')!=2 or not Path(config.get('python','')).is_file() or not Path(config.get('ffmpeg','')).is_file()
-        if needs_asr:
-            missing=missing or config.get('backend')=='none' or not Path(config.get('model_path') or '/missing-model-path').is_dir()
-            if args.backend is not None:missing=missing or desired!=config.get('backend')
-            if getattr(args,'model',None):missing=missing or model_name(desired,args.model)!=config.get('model')
-        if missing:
+        def base_missing(c):return c.get('schema_version')!=2 or not Path(c.get('python','')).is_file() or not Path(c.get('ffmpeg','')).is_file()
+        def asr_missing(c):
+            gap=c.get('backend')=='none' or not Path(c.get('model_path') or '/missing-model-path').is_dir()
+            if args.backend is not None:gap=gap or desired!=c.get('backend')
+            if getattr(args,'model',None):gap=gap or model_name(desired,args.model)!=c.get('model')
+            return gap
+        def bootstrap(backend):
             require(not args.config,'自定义配置不完整，请先通过统一入口配置对应 state-dir')
             entry=Path(__file__).resolve().parent
             command=['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(entry/'bootstrap.ps1')] if platform.system()=='Windows' else ['bash',str(entry/'bootstrap.sh')]
-            command+=['--state-dir',str(data),'--backend',desired if needs_asr else 'none']
+            command+=['--state-dir',str(data),'--backend',backend]
             if args.offline:command+=['--offline']
-            if getattr(args,'model',None):command+=['--model',args.model]
-            run(command);config=read_json(config_file)
+            if getattr(args,'model',None) and backend!='none':command+=['--model',args.model]
+            run(command);return read_json(config_file)
+        if needs_asr and args.command in ('build','export'):
+            # 成片复查只是复查：转写后端/模型准备不了时降级为跳过，照常交付并明确标「待回听」，不能记成通过。
+            skipped=os.environ.get('CY_EDIT_LONGVIDEO_RECHECK_SKIPPED') if os.environ.get('CY_EDIT_LONGVIDEO_REEXEC') else None
+            if not skipped and asr_missing(config):
+                try:config=bootstrap(desired)
+                except Exception as exc:
+                    detail=[x for x in str(exc).splitlines() if x.strip()] or [type(exc).__name__]
+                    skipped='转写后端或模型无法准备（'+('离线' if args.offline else '下载或安装失败')+'）：'+detail[-1].strip()[:300]
+                    print(json.dumps({'warning':'成片复查未完成，待回听','reason':skipped,'action':'继续生成交付；之后网络恢复可用新版本号重新 build 复查'},ensure_ascii=False),file=sys.stderr)
+            if skipped:
+                os.environ['CY_EDIT_LONGVIDEO_RECHECK_SKIPPED']=skipped;args.skip_recheck=True;args.recheck_skipped=skipped;needs_asr=False
+        if base_missing(config) or (needs_asr and asr_missing(config)):
+            config=bootstrap(desired if needs_asr else 'none')
     interpreter=config.get('python')
     if interpreter and Path(interpreter).is_file() and Path(interpreter).absolute()!=Path(sys.executable).absolute() and os.environ.get('CY_EDIT_LONGVIDEO_REEXEC')!=interpreter:
-        os.environ['CY_EDIT_LONGVIDEO_REEXEC']=interpreter;os.execv(interpreter,[interpreter,str(Path(__file__).resolve()),*sys.argv[1:]])
+        os.environ['CY_EDIT_LONGVIDEO_REEXEC']=interpreter;argv=[interpreter,str(Path(__file__).resolve()),*sys.argv[1:]]
+        # Windows 的 exec 会另起进程、原进程立即退出：Agent 以为命令结束，子进程还持有项目锁。改为等待子进程并传回退出码。
+        if platform.system()=='Windows':
+            import subprocess;raise SystemExit(subprocess.call(argv))
+        os.execv(interpreter,argv)
     return config
 
 
+def global_flags_first(argv):
+    """--offline is a top-level flag; also accept it after the subcommand (prepare --offline). sys.argv stays untouched for cy_auto_update."""
+    cut=argv.index('--') if '--' in argv else len(argv)
+    moved=[x for x in argv[:cut] if x=='--offline']
+    return moved[:1]+[x for x in argv[:cut] if x!='--offline']+argv[cut:]
+
+
 def main():
-    args=parser().parse_args();data=state_dir(args.state_dir);config_file=Path(args.config).expanduser().resolve() if args.config else data/'runtime.json'
+    args=parser().parse_args(global_flags_first(sys.argv[1:]));data=state_dir(args.state_dir);config_file=Path(args.config).expanduser().resolve() if args.config else data/'runtime.json'
     try:
         config=runtime(args,data,config_file)
         if args.config and not args.state_dir and config.get('state_dir'):data=Path(config['state_dir'])
@@ -120,7 +146,7 @@ def main():
             elif args.command=='review-plan':result=review_plan(args.project,args.plan,args.out,args.segments,args.checks,args.evidence_file)
             elif args.command=='validate-plan':
                 _,_,plan,warnings=validate_plan(args.project,args.plan);result={'structure':'valid','quality':plan['quality'],'warnings':warnings}
-            elif args.command=='export':result=export_project(args.project,args.plan,args.version,config)
+            elif args.command=='export':result=export_project(args.project,args.plan,args.version,config,skip_recheck=getattr(args,'skip_recheck',False),skip_reason=getattr(args,'recheck_skipped',None))
             elif args.command=='verify':result=verify_delivery(args.delivery)
             elif args.command=='inspect-inputs':
                 from lve_sources import inspect_inputs

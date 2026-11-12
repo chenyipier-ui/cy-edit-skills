@@ -42,7 +42,7 @@ from typing import Any, Iterable, Sequence
 
 SCHEMA_VERSION = 1
 FCPXML_VERSION = "1.8"
-DEFAULT_CHUNK_MINUTES = 20.0
+DEFAULT_CHUNK_MINUTES = 8.0  # 一块在 CPU 上几分钟内识别完，Agent 单条命令超时后能从断点续上
 DEFAULT_PACKET_MINUTES = 8.0
 PROJECT_FIELDS = ("name",)
 BATCH_PLAN_KIND = "jianying_longvideo_batch_plan"
@@ -340,6 +340,12 @@ def normalized_probe(source: Path) -> dict[str, Any]:
         average_fps = parse_fraction(primary_video.get("avg_frame_rate"))
         nominal_fps = parse_fraction(primary_video.get("r_frame_rate"))
         fps = nominal_fps or average_fps
+        # 部分安卓可变帧率素材的名义帧率是 90000、120 之类的时基，不是真实帧率：差太多时改用平均帧率并贴到常见帧率
+        if average_fps and nominal_fps and (float(nominal_fps) > 1.5 * float(average_fps) or float(nominal_fps) > 120):
+            common = [Fraction(24000, 1001), Fraction(24), Fraction(25), Fraction(30000, 1001), Fraction(30),
+                      Fraction(50), Fraction(60000, 1001), Fraction(60)]
+            near = min(common, key=lambda c: abs(float(c) - float(average_fps)))
+            fps = near if abs(float(near) - float(average_fps)) / float(near) < 0.03 else average_fps
         is_vfr = bool(
             average_fps
             and nominal_fps
@@ -928,6 +934,31 @@ def probe_audio_duration(path: Path) -> int | None:
     return duration if duration is not None and duration > 0 else None
 
 
+def _silence_split_times(source: Path, stream_index: Any, audio_filter: str, chunk_seconds: float, total_seconds: float) -> list[float]:
+    """分块切点挪到目标时间附近最近的停顿中点，避免把一个词切成两半（转写分块之间没有重叠）。
+    检测失败或附近没有停顿时用固定时间。"""
+    if total_seconds <= chunk_seconds * 1.25:
+        return []
+    try:
+        proc = subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-nostats", "-i", str(source), "-map", f"0:{stream_index}",
+                               "-af", audio_filter + ",silencedetect=noise=-35dB:d=0.35", "-vn", "-f", "null", "-"],
+                              capture_output=True, text=True, errors="replace", timeout=1800)
+        starts = [float(x) for x in re.findall(r"silence_start: (-?[\d.]+)", proc.stderr)]
+        ends = [float(x) for x in re.findall(r"silence_end: (-?[\d.]+)", proc.stderr)]
+    except Exception:  # noqa: BLE001
+        starts, ends = [], []
+    mids = [(x + y) / 2 for x, y in zip(starts, ends) if y > x]
+    window = min(60.0, chunk_seconds / 4)
+    times: list[float] = []
+    target = chunk_seconds
+    while target < total_seconds - chunk_seconds / 4:
+        near = [m for m in mids if abs(m - target) <= window]
+        point = min(near, key=lambda m: abs(m - target)) if near else target
+        times.append(round(point, 3))
+        target = point + chunk_seconds
+    return times
+
+
 def command_extract_audio(args: argparse.Namespace) -> int:
     source = require_file(Path(args.source), "源视频")
     metadata = normalized_probe(source)
@@ -947,6 +978,8 @@ def command_extract_audio(args: argparse.Namespace) -> int:
     temp_dir = Path(tempfile.mkdtemp(prefix=".audio_chunks.", dir=workdir))
     try:
         output_pattern = temp_dir / "audio_%04d.flac"
+        audio_filter = f"asetpts=PTS-STARTPTS+({(audio_metadata['start_ms']-metadata['start_ms'])/1000})/TB,aresample=16000:async=1:first_pts=0"
+        split_times = _silence_split_times(source, audio_metadata['stream_index'], audio_filter, chunk_minutes * 60, (metadata.get('duration_ms') or 0) / 1000)
         run_command(
             [
                 "ffmpeg",
@@ -970,8 +1003,8 @@ def command_extract_audio(args: argparse.Namespace) -> int:
                 "5",
                 "-f",
                 "segment",
-                "-segment_time",
-                f"{chunk_minutes * 60:.3f}",
+                *(["-segment_times", ",".join(f"{t:.3f}" for t in split_times)] if split_times
+                  else ["-segment_time", f"{chunk_minutes * 60:.3f}"]),
                 "-reset_timestamps",
                 "1",
                 str(output_pattern),
@@ -2425,7 +2458,10 @@ class _FasterWhisperAdapter:
             print(f"转写：faster-whisper {model_name}，CPU（第一次会自动下载模型）", file=sys.stderr)
 
     def transcribe(self, path: str, language: str | None, initial_prompt: str | None) -> dict[str, Any]:
-        segments, info = self.model.transcribe(path, language=language, word_timestamps=True, initial_prompt=initial_prompt)
+        # 不延续上一段文字（防重复循环）；VAD 只去掉 1 秒以上的无声，免得静音里冒出“点赞订阅”之类的幻觉，又不吞短促的语气词。
+        segments, info = self.model.transcribe(path, language=language, word_timestamps=True, initial_prompt=initial_prompt,
+                                               condition_on_previous_text=False, vad_filter=True,
+                                               vad_parameters={"min_silence_duration_ms": 1000})
         out = [{"start": s.start, "end": s.end, "text": s.text,
                 "words": [{"start": w.start, "end": w.end, "word": w.word} for w in (s.words or [])]} for s in segments]
         return {"language": info.language, "segments": out}
@@ -2477,7 +2513,8 @@ def command_transcribe_any(args: argparse.Namespace) -> int:
             try:
                 if backend == "mlx":
                     result = engine.transcribe(chunk["path"], path_or_hf_repo=model, language=lang_arg,
-                                               word_timestamps=True, initial_prompt=prompt)
+                                               word_timestamps=True, initial_prompt=prompt,
+                                               condition_on_previous_text=False)
                 else:
                     result = engine.transcribe(chunk["path"], lang_arg, prompt)
             except Exception as exc:  # noqa: BLE001
@@ -3117,8 +3154,13 @@ def validate_multi(plan_path: Path) -> tuple[dict[str, Any], list[MultiItem], Fr
 
 def _canvas(plan: dict[str, Any], loaded: dict[str, dict[str, Any]]) -> tuple[Any, Any]:
     canvas = plan.get("canvas") if isinstance(plan.get("canvas"), dict) else {}
-    first = next((v["meta"].get("video") for _, v in sorted(loaded.items()) if isinstance(v["meta"].get("video"), dict)), {}) or {}
-    return canvas.get("width") or first.get("width"), canvas.get("height") or first.get("height")
+    entry = next((v for _, v in sorted(loaded.items()) if isinstance(v["meta"].get("video"), dict)), None)
+    first = entry["meta"]["video"] if entry else {}
+    width, height = first.get("width"), first.get("height")
+    # 手机竖拍常是编码 1920×1080 加 ±90° 旋转：画布按显示方向，否则竖片会被排成横版。
+    if entry and abs(_rotation(Path(entry["path"]))) % 180 == 90:
+        width, height = height, width
+    return canvas.get("width") or width, canvas.get("height") or height
 
 
 # Shared layout; its support status is documented separately from XML generation.
@@ -3248,16 +3290,20 @@ def recheck_asr(items: list[MultiItem], preview: Path, captions: list[dict[str, 
     ensure_python_module("mlx_whisper" if backend == "mlx" else "faster_whisper", "mlx-whisper==0.4.3" if backend == "mlx" else "faster-whisper==1.2.1")
     model = default_model(backend, model)
     wav = preview
-    prompt = "嗯，那个，我我我们今天就是，就是说一下这个，呃，这个事情。以下是普通话口语，照实记录语气词和重复，使用简体中文。"
+    # 复查语言跟着保留字幕走：中文为主用中文提示词，其他语言交给 Whisper 自动识别，不能写死中文。
+    text = "".join(str(c.get("text", "")) for c in captions)
+    cjk = sum(1 for ch in text if "\u4e00" <= ch <= "\u9fff")
+    lang = "zh" if text and cjk / max(1, len(text.replace(" ", ""))) > 0.3 else None
+    prompt = "嗯，那个，我我我们今天就是，就是说一下这个，呃，这个事情。以下是普通话口语，照实记录语气词和重复，使用简体中文。" if lang == "zh" else None
     _prepare_model_download()
     from cy_quality import retranscribe
     if backend=='mlx':
         import mlx_whisper
-        call=lambda path:mlx_whisper.transcribe(str(path),path_or_hf_repo=model,language='zh',word_timestamps=True,initial_prompt=prompt,condition_on_previous_text=False)
+        call=lambda path:mlx_whisper.transcribe(str(path),path_or_hf_repo=model,language=lang,word_timestamps=True,initial_prompt=prompt,condition_on_previous_text=False)
     else:
         engine=_FasterWhisperAdapter(model,None)
-        call=lambda path:engine.transcribe(str(path),'zh',prompt)
-    result=retranscribe(wav,preview.parent/'re-asr',call)
+        call=lambda path:engine.transcribe(str(path),lang,prompt)
+    result=retranscribe(wav,preview.parent/'re-asr',call,key=f'{backend}:{model}:{lang}')
     atomic_write_json(preview.parent/'成片再转写.json',result)
     from cy_quality import compare_asr
     return compare_asr(captions,result,lambda t:{'location':_where(items,t*1000)})
@@ -3299,6 +3345,11 @@ def clean_caption(text: str, strip_punct: bool, corrections: dict[str, str]) -> 
     return text
 
 
+def _display_width(text: str) -> float:
+    from cy_packaging import text_px
+    return text_px(unicodedata.normalize("NFKC", text).strip(), 1.0)
+
+
 def _split_caption(unit: dict[str, Any], a: int, b: int, max_chars: int) -> list[tuple[int, int, str]]:
     """一条转写单元 → 若干单行。有字级时间时按字切，每行不超过 max_chars 个字，尽量断在标点处；
     只有句级时间（SRT 导入）时不拆，整句一条。"""
@@ -3306,11 +3357,12 @@ def _split_caption(unit: dict[str, Any], a: int, b: int, max_chars: int) -> list
     if not words or max_chars <= 0:
         return [(a, b, words_for_intersection(unit, a, b))]
     # 均分每行长度：按总字数算出要几行，再按平均字数切，避免最后一行只剩一两个字（如整句 14 字时切出「了」）
-    lengths = [len(normalized_text(str(w["text"]))) for w in words]
+    # 按显示宽度计：汉字 1，英文字母约 0.55，空格 0.3——英文口播不会一行只剩一两个词
+    lengths = [_display_width(str(w["text"])) for w in words]
     total_chars = sum(lengths)
     limit = max_chars
     if total_chars > max_chars:
-        limit = max(1, -(-total_chars // (-(-total_chars // max_chars))))
+        limit = total_chars / math.ceil(total_chars / max_chars - 1e-9)
     lines, cur, count = [], [], 0
     for w, n in zip(words, lengths):
         t = str(w["text"])
@@ -3358,7 +3410,7 @@ def multi_captions(items: list[MultiItem], max_chars: int, strip_punct: bool, co
     if short:
         notes.append(f"{len(short)} 条字幕显示不到 0.4 秒（如「{short[0]['text']}」），导入后看一眼是否需要合并")
     if max_chars > 0:
-        long_lines = [c for c in captions if len(normalized_text(c["text"])) > max_chars]
+        long_lines = [c for c in captions if _display_width(c["text"]) > max_chars + 0.5]
         if long_lines:
             notes.append(f"{len(long_lines)} 条字幕超过每行 {max_chars} 字（来自只有句级时间的 SRT，无法按字拆），在剪辑软件里手动断行")
     return captions, notes
@@ -3687,7 +3739,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             ensure_ffmpeg()
         return int(args.handler(args))
     except Exception as exc:
-        print(f"错误：{exc}；保存失败时不能声称意见已全部保存", file=sys.stderr)
+        tail = "；保存失败时不能声称意见已全部保存" if args.command == "feedback" else ""
+        print(f"错误：{exc}{tail}", file=sys.stderr)
         return 2
     except KeyboardInterrupt:
         print("已取消", file=sys.stderr)
