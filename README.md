@@ -6,9 +6,9 @@
 
 **原始素材 → 内容精剪与复查 → 一个 FCPXML → 剪映审片、包装 → 客户交付**
 
-当前版本：**2.3.0 · 公开测试版**。已完成合成组件检查，并有 macOS 剪映专业版 11.7.0 的导入、文字修改和保存重开记录；真人素材完整内容与听感验收、Windows 实机验证仍待补齐。[验证范围](docs/VALIDATION.md)
+当前版本：**2.4.0 · 公开测试版**。已完成合成组件检查，并有 macOS 剪映专业版 11.7.0 的导入、文字修改和保存重开记录；真人素材完整内容与听感验收、Windows 实机验证仍待补齐。[验证范围](docs/VALIDATION.md)
 
-[GitHub 主仓库](https://github.com/chenyipier-ui/cy-edit-skills) · [Gitee 官方镜像](https://gitee.com/chenyipier/cy-edit-skills) · [国内安装包下载](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.3.0)
+[GitHub 主仓库](https://github.com/chenyipier-ui/cy-edit-skills) · [Gitee 官方镜像](https://gitee.com/chenyipier/cy-edit-skills) · [国内安装包下载](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.4.0)
 
 ## 两个 Skill，按内容选择
 
@@ -47,11 +47,15 @@ npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
 
 按提示选择一个或两个 Skill，以及要使用的 Agent。默认安装到当前项目；跨项目使用可加 `-g`。Skills CLI 当前要求 Node.js 22.20 或更高版本。
 
-也可以从 [GitHub 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.3.0) 或 [Gitee 国内下载页](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.3.0) 下载单独安装包，解压后放入 Agent 的 skills 目录。两边的 v2.3.0 ZIP 内容和 SHA-256 一致，Gitee 附件直接从其文件服务下载。每个 Skill 都附有许可、版本和使用说明。[完整安装说明](docs/INSTALL.md)
+也可以从 [GitHub 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.4.0) 或 [Gitee 国内下载页](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.4.0) 下载单独安装包，解压后放入 Agent 的 skills 目录。两边的 v2.4.0 ZIP 内容和 SHA-256 一致，Gitee 附件直接从其文件服务下载。每个 Skill 都附有许可、版本和使用说明。[完整安装说明](docs/INSTALL.md)
 
 首次处理素材可能下载 Python、媒体依赖及语音识别模型；代码安装与运行环境准备是两个步骤。启动入口面向 macOS 和 Windows，Windows 尚未完成实机验证。仓库或 ZIP 不包含模型、运行环境、客户素材及用户经验库。
 
 GitHub 作为维护来源，每次发布新 Release（包括公开测试版）后，自动同步代码、标签、版本说明和安装包到 Gitee，并回读核对文件校验值。同步进度见 [镜像工作流](https://github.com/chenyipier-ui/cy-edit-skills/actions/workflows/mirror-gitee.yml)，维护步骤见 [发布说明](docs/PUBLISHING.md)。国内镜像不改变依赖及模型的下载地址。
+
+## 自动更新
+
+2.4.0 起，每次开始新任务自动检查官方版本、下载并核对校验值，再使用新版说明与脚本，无需确认。新版保存在独立缓存，断网时继续使用可用版本。**原来的 2.3.0 用户需先升级一次**，之后自动更新。[更新机制](docs/INSTALL.md#自动更新240-起)
 
 ## 怎么开始
 

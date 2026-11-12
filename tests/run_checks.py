@@ -38,7 +38,7 @@ def main():
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise RuntimeError("FFmpeg must be installed for synthetic media checks")
-    env = dict(os.environ, CY_TEST_OUTPUT=str(out), PYTHONDONTWRITEBYTECODE="1")
+    env = dict(os.environ, CY_TEST_OUTPUT=str(out), PYTHONDONTWRITEBYTECODE="1", CY_EDIT_AUTO_UPDATE="0")
     counts = {"python": 0, "json": 0, "shell": 0, "local_links": 0}
     for path in sorted(ROOT.rglob("*")):
         if not path.is_file() or any(p.startswith(".") for p in path.relative_to(ROOT).parts):

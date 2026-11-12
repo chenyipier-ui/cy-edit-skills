@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """cy-edit-longvideo: prepare → propose → approve → build → feedback."""
 from __future__ import annotations
+
+if __name__ == "__main__":
+    from pathlib import Path as _CyPath
+    from cy_auto_update import start as _cy_start
+    _cy_start(_CyPath(__file__).resolve().parents[1])
 import argparse
 import contextlib
 import importlib.util
