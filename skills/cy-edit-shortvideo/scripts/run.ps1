@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $skillRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $dataRoot = if ($env:CY_EDIT_DATA) { $env:CY_EDIT_DATA } else { Join-Path $env:APPDATA 'cy-edit' }
 $pyPath = Join-Path $dataRoot 'venv\Scripts\python.exe'

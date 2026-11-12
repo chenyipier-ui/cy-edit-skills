@@ -52,6 +52,10 @@ def main():
         elif path.suffix in (".sh", ".command"):
             run(["bash", "-n", path])
             counts["shell"] += 1
+        elif path.suffix == ".ps1":
+            data = path.read_bytes()
+            if any(byte > 127 for byte in data):
+                assert data.startswith(b"\xef\xbb\xbf"), f"Windows PowerShell 5.1 needs a UTF-8 BOM: {path}"
         elif path.suffix == ".md":
             for target in re.findall(r"\]\(([^\s)]+)\)", path.read_text(encoding="utf-8")):
                 if target.startswith(("http:", "https:", "mailto:", "#")):

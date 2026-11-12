@@ -14,6 +14,8 @@ macOS 剪映专业版 11.7.0 的合成横竖版工程被导入，字幕文字被
 
 2026-11-12 在 macOS、Python 3.12.13、PyAV 16.0.1 的发布隔离目录重新执行：下述合成检查通过，3 个生成的 FCPXML 均通过本地 FCPXML 1.10 DTD 校验。Skills CLI 1.8.1 从本地发布目录向隔离项目安装两个 Skill 成功；这项记录仅证明本地包可被发现和安装。远端发布安装及 CI 的最终结果见对应 Release 和 Actions。
 
+首轮 Windows PowerShell 5.1 语法检查发现口播入口的中文字符串存在编码解析错误，发布整理为该脚本添加 UTF-8 BOM，并将 Windows 脚本与 ZIP 内换行统一为 CRLF。该修复针对入口解析，不代表 Windows 完整安装与剪辑已经实测。
+
 `tests/run_checks.py` 在独立目录生成短合成视频，检查：
 
 - Python、JSON、Mac 入口语法，文档本地链接和 Skill 元信息。

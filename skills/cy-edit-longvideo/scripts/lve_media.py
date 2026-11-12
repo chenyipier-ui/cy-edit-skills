@@ -91,7 +91,7 @@ def xml_document(project,output,asset_dir):
             channels={a['channels'] for a in m['audios']}
             if len(channels)==1:attrs['audioChannels']=str(next(iter(channels)))
         asset=ET.SubElement(resources,'asset',attrs);ET.SubElement(asset,'media-rep',kind='original-media',src=Path(m['path']).as_uri())
-    
+
     event=ET.SubElement(ET.SubElement(xml,'library'),'event',name='长内容剪辑')
     node=ET.SubElement(event,'project',name=output['title']);seq=ET.SubElement(node,'sequence',format='projectFormat',duration=time_string(output['duration_frames']*frame),tcStart='0s',tcFormat='NDF',audioLayout='stereo',audioRate='48k')
     spine=ET.SubElement(seq,'spine');hosts=[]
