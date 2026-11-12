@@ -9,6 +9,17 @@ permissions:
   contents: read
 
 jobs:
+  mirror-tests:
+    name: Release mirror safety and resume checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -p 'test_release_mirror.py' -v
+
   synthetic:
     name: Structure and synthetic FCPXML
     runs-on: ubuntu-latest

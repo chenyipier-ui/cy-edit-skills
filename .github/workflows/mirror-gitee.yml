@@ -1,0 +1,60 @@
+name: Mirror release to Gitee
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published GitHub release tag, for example v2.3.0
+        required: true
+        type: string
+      mode:
+        description: Sync, or inspect without changing either website
+        required: true
+        default: sync
+        type: choice
+        options: [sync, check]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitee-release-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: github.repository == 'chenyipier-ui/cy-edit-skills'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run mirror regression checks
+        run: python -m unittest discover -s tests -p 'test_release_mirror.py' -v
+      - name: Sync release and verify public downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          SYNC_MODE: ${{ inputs.mode || 'sync' }}
+        run: >-
+          python tools/sync_gitee_release.py
+          --tag "$RELEASE_TAG"
+          --mode "$SYNC_MODE"
+          --report "$RUNNER_TEMP/gitee-sync.json"
+      - name: Preserve sync result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitee-sync-result
+          path: ${{ runner.temp }}/gitee-sync.json
+          if-no-files-found: ignore
+
