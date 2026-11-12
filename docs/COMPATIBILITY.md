@@ -7,7 +7,7 @@
 - 首次配置需要网络、磁盘空间和用户目录写入权限；后续复用依赖与模型。
 - Windows ARM、旧系统和手机端不属于当前适配目标。
 
-FCPXML 生成不需要安装 Final Cut Pro。剪映专业版需有 FCPXML 工程导入能力，具体入口按当前客户端界面操作。
+FCPXML 生成不需要安装 Final Cut Pro。剪映专业版需有 FCPXML 工程导入能力，具体入口按当前客户端界面操作。Final Cut Pro 可通过“文件 → 导入 → XML”读取 FCPXML，详见 [Apple 导入说明](https://support.apple.com/zh-cn/guide/final-cut-pro/verdbd66ae/mac)。
 
 ## 工程格式
 
