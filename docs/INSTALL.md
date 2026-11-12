@@ -17,9 +17,17 @@ npx skills add chenyipier-ui/cy-edit-skills --skill cy-edit-longvideo
 
 需要所有项目可用时，加 `-g`。请按实际使用的 Agent 选择目标；安装成功不等于该 Agent 已完成真实素材剪辑验证。
 
+GitHub 访问不便时，把来源换成完整的 Gitee URL：
+
+```bash
+npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
+```
+
+同样可以加 `--skill cy-edit-shortvideo` 或 `--skill cy-edit-longvideo` 只安装其中一套。2026-11-12 已用 Skills CLI 1.8.1 从 Gitee 向隔离 Codex 项目安装两套 Skill，并核对 85 个文件一致。该检查不代表所有网络环境或 Agent 都已测试。
+
 ## 下载 ZIP 安装
 
-从 [v2.3.0 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.3.0) 下载：
+从 [Gitee 国内下载页](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.3.0) 或 [GitHub 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.3.0) 下载：
 
 - `cy-edit-shortvideo-v2.3.0.zip`：口播精剪。
 - `cy-edit-longvideo-v2.3.0.zip`：长内容整理与剪辑。
@@ -28,6 +36,8 @@ npx skills add chenyipier-ui/cy-edit-skills --skill cy-edit-longvideo
 把解压得到的 `cy-edit-shortvideo` 或 `cy-edit-longvideo` 文件夹放进 Agent 的 skills 目录，确保 `SKILL.md` 位于该文件夹第一层。保留完整目录，包括脚本、references、LICENSE 和 THIRD_PARTY.md。目录位置按 Agent 的安装说明选择；也可以让 Agent 按本机配置完成安装。
 
 发布页的 `SHA256SUMS` 提供文件校验值。macOS 可用 `shasum -a 256 文件.zip`，Windows PowerShell 可用 `Get-FileHash 文件.zip -Algorithm SHA256`，与清单逐项比较。
+
+Gitee 的三个 ZIP 和校验清单已通过未登录下载核对，与 GitHub v2.3.0 附件逐字节一致；下载实际来自 Gitee 文件服务，无需跳转 GitHub。版本更新时单独同步附件，导入 Git 仓库本身不会自动复制 Release 附件。
 
 ## 运行环境
 

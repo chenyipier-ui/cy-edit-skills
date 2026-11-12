@@ -16,6 +16,8 @@ macOS 剪映专业版 11.7.0 的合成横竖版工程被导入，字幕文字被
 
 首轮 Windows PowerShell 5.1 语法检查发现口播入口的中文字符串存在编码解析错误，发布整理为该脚本添加 UTF-8 BOM，并将 Windows 脚本与 ZIP 内换行统一为 CRLF。该修复针对入口解析，不代表 Windows 完整安装与剪辑已经实测。
 
+发布后已分别从 GitHub 与 Gitee 的公开来源向隔离 Codex 项目安装两套 Skill，85 个文件一致（Windows 换行规范化后比较）。两边 v2.3.0 的三个 ZIP 及 SHA256SUMS 均经未登录公开下载逐字节核对；Gitee 下载落在其 `foruda.gitee.com` 文件服务。镜像安装检查没有使用国内各运营商、多地区或受限网络的独立测试环境。
+
 `tests/run_checks.py` 在独立目录生成短合成视频，检查：
 
 - Python、JSON、Mac 入口语法，文档本地链接和 Skill 元信息。

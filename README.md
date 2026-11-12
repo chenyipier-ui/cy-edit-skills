@@ -8,6 +8,8 @@
 
 当前版本：**2.3.0 · 公开测试版**。已完成合成组件检查，并有 macOS 剪映专业版 11.7.0 的导入、文字修改和保存重开记录；真人素材完整内容与听感验收、Windows 实机验证仍待补齐。[验证范围](docs/VALIDATION.md)
 
+[GitHub 主仓库](https://github.com/chenyipier-ui/cy-edit-skills) · [Gitee 官方镜像](https://gitee.com/chenyipier/cy-edit-skills) · [国内安装包下载](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.3.0)
+
 ## 两个 Skill，按内容选择
 
 | Skill | 适合的素材与目标 | 主要处理方式 |
@@ -37,11 +39,19 @@
 npx skills add chenyipier-ui/cy-edit-skills
 ```
 
+GitHub 访问不便时，可以从 Gitee 官方镜像安装：
+
+```bash
+npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
+```
+
 按提示选择一个或两个 Skill，以及要使用的 Agent。默认安装到当前项目；跨项目使用可加 `-g`。Skills CLI 当前要求 Node.js 22.20 或更高版本。
 
-也可以从 [v2.3.0 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.3.0) 下载单独安装包，解压后放入 Agent 的 skills 目录。每个 Skill 都附有许可、版本和使用说明。[完整安装说明](docs/INSTALL.md)
+也可以从 [GitHub 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.3.0) 或 [Gitee 国内下载页](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.3.0) 下载单独安装包，解压后放入 Agent 的 skills 目录。两边的 v2.3.0 ZIP 内容和 SHA-256 一致，Gitee 附件直接从其文件服务下载。每个 Skill 都附有许可、版本和使用说明。[完整安装说明](docs/INSTALL.md)
 
 首次处理素材可能下载 Python、媒体依赖及语音识别模型；代码安装与运行环境准备是两个步骤。启动入口面向 macOS 和 Windows，Windows 尚未完成实机验证。仓库或 ZIP 不包含模型、运行环境、客户素材及用户经验库。
+
+GitHub 作为维护来源，Gitee 在发布时同步代码、标签和安装包；目前没有配置持续自动同步。国内镜像不改变依赖及模型的下载地址。
 
 ## 怎么开始
 
