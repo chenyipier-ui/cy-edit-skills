@@ -51,7 +51,7 @@ npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
 
 首次处理素材可能下载 Python、媒体依赖及语音识别模型；代码安装与运行环境准备是两个步骤。启动入口面向 macOS 和 Windows，Windows 尚未完成实机验证。仓库或 ZIP 不包含模型、运行环境、客户素材及用户经验库。
 
-GitHub 作为维护来源，Gitee 在发布时同步代码、标签和安装包；目前没有配置持续自动同步。国内镜像不改变依赖及模型的下载地址。
+GitHub 作为维护来源，每次发布新 Release（包括公开测试版）后，自动同步代码、标签、版本说明和安装包到 Gitee，并回读核对文件校验值。同步进度见 [镜像工作流](https://github.com/chenyipier-ui/cy-edit-skills/actions/workflows/mirror-gitee.yml)，维护步骤见 [发布说明](docs/PUBLISHING.md)。国内镜像不改变依赖及模型的下载地址。
 
 ## 怎么开始
 

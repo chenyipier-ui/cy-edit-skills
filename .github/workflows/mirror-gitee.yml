@@ -57,4 +57,3 @@ jobs:
           name: gitee-sync-result
           path: ${{ runner.temp }}/gitee-sync.json
           if-no-files-found: ignore
-

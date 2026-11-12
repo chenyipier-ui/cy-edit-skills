@@ -37,7 +37,7 @@ npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
 
 发布页的 `SHA256SUMS` 提供文件校验值。macOS 可用 `shasum -a 256 文件.zip`，Windows PowerShell 可用 `Get-FileHash 文件.zip -Algorithm SHA256`，与清单逐项比较。
 
-Gitee 的三个 ZIP 和校验清单已通过未登录下载核对，与 GitHub v2.3.0 附件逐字节一致；下载实际来自 Gitee 文件服务，无需跳转 GitHub。版本更新时单独同步附件，导入 Git 仓库本身不会自动复制 Release 附件。
+Gitee 的三个 ZIP 和校验清单已通过未登录下载核对，与 GitHub v2.3.0 附件逐字节一致；下载实际来自 Gitee 文件服务，无需跳转 GitHub。后续新 Release 由发布工作流同步代码与附件，并重新下载核验；导入 Git 仓库本身不会自动复制 Release 附件。[同步状态](https://github.com/chenyipier-ui/cy-edit-skills/actions/workflows/mirror-gitee.yml)
 
 ## 运行环境
 
