@@ -23,7 +23,7 @@ GitHub 访问不便时，把来源换成完整的 Gitee URL：
 npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
 ```
 
-同样可以加 `--skill cy-edit-shortvideo` 或 `--skill cy-edit-longvideo` 只安装其中一套。2026-11-12 已用 Skills CLI 1.8.1 从 Gitee 向隔离 Codex 项目安装两套 Skill，并核对 85 个文件一致。该检查不代表所有网络环境或 Agent 都已测试。
+同样可以加 `--skill cy-edit-shortvideo` 或 `--skill cy-edit-longvideo` 只安装其中一套。2026-11-12 首次发布 2.3.0 时已用 Skills CLI 1.8.1 从 Gitee 向隔离 Codex 项目安装两套 Skill，并核对 85 个文件一致。该检查不代表所有网络环境或 Agent 都已测试。
 
 ## 下载 ZIP 安装
 
