@@ -7,6 +7,7 @@ sys.path.insert(0,str(base/'cy-edit-longvideo/scripts'))
 from cy_quality import safe_ranges,word_chars,write_review,record_review
 from lve_common import write_json
 from lve_feedback_flow import feedback,experience
+from test_title_options import TITLES
 folder=work/'components';folder.mkdir(parents=True,exist_ok=True);os.environ['CY_EDIT_EXPERIENCE_DIR']=str(folder/'shared')
 checks=[]
 assert word_chars([{'word':'一个方法','start':1,'end':2}])==[(c,1.,2.) for c in '一个方法'];checks.append('多字词未伪造逐字时间')
@@ -46,7 +47,7 @@ manifest=json.loads((proj/'project.json').read_text());sid=next(iter(manifest['s
 srt=folder/'fixture.srt';srt.write_text('1\n00:00:01,000 --> 00:00:05,000\n先理清内容主线\n\n2\n00:00:06,000 --> 00:00:10,000\n再删掉重复表达\n',encoding='utf-8')
 import_transcript(proj,srt,sid);p2=json.loads((proj/'project.json').read_text());p2['preparation_complete']=True;write_json(proj/'project.json',p2)
 cached_map(ensure_audio(proj,p2['sources'][sid],config));units=json.loads((proj/'transcript.json').read_text())['units'];uids=[u['id'] for u in units]
-cand=lambda id,ids:{'id':id,'title':'剪辑方法','thesis':'先主线后删重复','reason':'合成验收夹具','unit_ids':ids,'excluded':[], 'content_title':['先理清主线','再删除重复'],'cover_title':['口播剪短','就能讲清楚吗'],'chapters':[]}
+cand=lambda id,ids:{'id':id,'title':'剪辑方法','thesis':'先主线后删重复','reason':'合成验收夹具','unit_ids':ids,'excluded':[], **TITLES,'chapters':[]}
 write_json(folder/'proposal.json',{'mode':'multi','reviewed_sources':[sid],'candidates':[cand('one',uids),cand('two',uids[:1])]})
 propose(proj,folder/'proposal.json');reply=folder/'fixture-authorization.txt';reply.write_text('合成验收用，授权生成两条，未声称真人访谈内容验收通过。');approve(proj,'one,two',reply)
 plan=proj/'plans/v1.json';build_plan(proj,plan);result=export_project(proj,plan,'v1',config,skip_recheck=True);verify_delivery(proj/'deliveries/v1')

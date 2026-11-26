@@ -2,7 +2,7 @@
 
 | 文件 | 必填内容 | 自动生成或可省略 |
 | --- | --- | --- |
-| 方案 | candidates；reviewed_sources；每候选 title/thesis/unit_ids/excluded/reason；两种标题与章节 | mode、候选 id、估时、来源哈希；audience/purpose 可根据素材推断 |
+| 方案 | candidates、reviewed_sources、每候选 title/thesis/unit_ids/excluded/reason、内容标题和封面标题各三组、章节 | mode、候选 id、估时、来源哈希；audience/purpose 可根据素材推断 |
 | 剪辑计划 | build 生成，不手写 | 原片秒数、项目帧数、字幕、版本签名 |
 | 本轮反馈 | message；items 内 text，范围默认 project | 本地消息号、登记表、MD、保存回执 |
 | 经验采用 | decisions 的真实 experience_id、decision、reason；adopt 时 application | 其他新增项保持 pending；快照自动绑定 |

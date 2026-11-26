@@ -6,7 +6,7 @@ GitHub 是维护来源，Gitee 提供国内代码与安装包下载。只在维�
 
 **已启用。** GitHub 本仓库已配置专用 `GITEE_TOKEN` Actions secret。2026-11-12 的 v2.4.0 发布已完成新版本创建、三个 ZIP 与 SHA256SUMS 上传、公开下载回读和 Git 引用一致性核对。[实际运行记录](https://github.com/chenyipier-ui/cy-edit-skills/actions/runs/43172450252)
 
-当前版本为 2.5.0。两套 Skill 延续用户端自动更新，使用方式见 [安装说明](INSTALL.md)。每次发布后的结果以对应镜像工作流为准。
+当前版本为 2.6.0。两套 Skill 延续用户端自动更新，使用方式见 [安装说明](INSTALL.md)。每次发布后的结果以对应镜像工作流为准。
 
 ## 每次更新怎么做
 
@@ -35,7 +35,7 @@ GitHub 的 `published` 事件包含正式版和公开测试版。仅编辑一个
 1. 在 [Gitee 私人令牌](https://gitee.com/profile/personal_access_tokens) 新建专用令牌，例如 `cy-edit-skills GitHub release mirror`。
 2. 选择**仓库级私人令牌 → 选择仓库 → chenyipier/cy-edit-skills**。仅勾选 `projects`；平台强制的基础权限按页面保留。无需开启 Pull Requests、Issues 或 Webhook 管理。按自己的维护周期设置过期时间，到期前更换令牌。
 3. 把令牌直接保存到 [GitHub 本仓库 Actions secrets](https://github.com/chenyipier-ui/cy-edit-skills/settings/secrets/actions)，名称为 **`GITEE_TOKEN`**。不要发到聊天、Issues、代码或 Release 说明中。
-4. 在 [镜像工作流](https://github.com/chenyipier-ui/cy-edit-skills/actions/workflows/mirror-gitee.yml) 选择 `Run workflow`，填写已发布标签 `v2.5.0`，模式 `sync`。首次实际成功后，再将启用状态记录为已验证。
+4. 在 [镜像工作流](https://github.com/chenyipier-ui/cy-edit-skills/actions/workflows/mirror-gitee.yml) 选择 `Run workflow`，填写已发布标签 `v2.6.0`，模式 `sync`。首次实际成功后，再将启用状态记录为已验证。
 
 GitHub 登录状态与 Gitee 浏览器登录不能代替后台工作流授权。这个令牌让本仓库的 GitHub Actions 能向指定 Gitee 仓库推送代码、创建版本和上传附件；工作流只在仓库本身发布或维护者手动触发时使用它，不在外部 PR 测试中使用。
 
@@ -47,20 +47,20 @@ GitHub 登录状态与 Gitee 浏览器登录不能代替后台工作流授权。
 
 ```bash
 # 在仓库中，只读检查指定的已发布版本
-python tools/sync_gitee_release.py --tag v2.5.0 --mode check --report /tmp/gitee-check.json
+python tools/sync_gitee_release.py --tag v2.6.0 --mode check --report /tmp/gitee-check.json
 
 # 维护者通过已登录的 GitHub CLI 手动补同步
-gh workflow run mirror-gitee.yml --repo chenyipier-ui/cy-edit-skills -f tag=v2.5.0 -f mode=sync
+gh workflow run mirror-gitee.yml --repo chenyipier-ui/cy-edit-skills -f tag=v2.6.0 -f mode=sync
 ```
 
 GitHub CLI 发布示例（须先完成代码审查和测试；目录与版本按当次发布替换）：
 
 ```bash
-python tools/build_release.py --output /tmp/cy-edit-release-v2.5.0
-git tag -a v2.5.0 -m 'CY edit skills 2.5.0'
-git push origin main refs/tags/v2.5.0
-gh release create v2.5.0 /tmp/cy-edit-release-v2.5.0/*.zip /tmp/cy-edit-release-v2.5.0/SHA256SUMS --draft --latest --verify-tag --title 'CY 剪辑 Skills 2.5.0' --notes-file /tmp/release-notes.md
-gh release edit v2.5.0 --draft=false
+python tools/build_release.py --output /tmp/cy-edit-release-v2.6.0
+git tag -a v2.6.0 -m 'CY edit skills 2.6.0'
+git push origin main refs/tags/v2.6.0
+gh release create v2.6.0 /tmp/cy-edit-release-v2.6.0/*.zip /tmp/cy-edit-release-v2.6.0/SHA256SUMS --draft --latest --verify-tag --title 'CY 剪辑 Skills 2.6.0' --notes-file /tmp/release-notes.md
+gh release edit v2.6.0 --draft=false
 ```
 
 依据：[GitHub Release 触发事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#release)、[GitHub Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)、[Gitee Release 与附件 API](https://gitee.com/sdk/gitee5j/blob/main/docs/RepositoriesApi.md)。

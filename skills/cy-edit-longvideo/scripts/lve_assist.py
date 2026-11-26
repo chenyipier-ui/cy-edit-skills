@@ -74,9 +74,16 @@ def label_speaker(directory,name,evidence_file,source_ids=None,unit_ids=None):
 def templates(directory,out,data=None):
     root,p=project_at(directory);t=read_json(root/'transcript.json');require(t['units'],'没有文字；先检查识别结果')
     folder=Path(out);require(not folder.exists(),'模板目录已存在，请用新目录');uid=t['units'][0]['id']
-    write_json(folder/'proposal.json',{'mode':'single','reviewed_sources':[],'excluded_sources':{},'candidates':[{'title':'填写标题','thesis':'填写主线','unit_ids':[uid],'excluded':[],'reason':'填写保留与删除依据'}]})
+    candidate = {
+        'title': '填写标题', 'thesis': '填写主线', 'unit_ids': [uid],
+        'excluded': [], 'reason': '填写保留与删除依据',
+        'content_title': [['', ''] for _ in range(3)],
+        'cover_title': [['', ''] for _ in range(3)],
+        'chapters': [],
+    }
+    write_json(folder/'proposal.json',{'mode':'single','reviewed_sources':[],'excluded_sources':{},'candidates':[candidate]})
     write_json(folder/'feedback.json',{'message':'本轮用户原话','items':[{'text':'其中一项意见','scope':'project'}]})
-    atomic_text(folder/'先读我.md','方案候选只需标题、主线、保留编号、删除说明、理由。读完后填写 reviewed_sources。程序自动填版本和哈希。示例不能冒充实际审阅。\n')
+    atomic_text(folder/'先读我.md','每个方案候选填写标题、主线、保留编号、删减理由。根据最终文稿为内容标题、封面标题各写三组两行文案，首组默认显示。读完后填写 reviewed_sources。程序自动填版本和哈希。\n')
     return {'folder':str(folder),'message':'模板已生成。日常可以直接按示例填写简短方案，不必另跑模板命令。'}
 
 
@@ -135,12 +142,16 @@ def _map_interval(a,b,segments,fps):
     return hits
 
 
-def build_plan(directory,out,selection_file=None,corrections_file=None):
+def build_plan(directory,out,selection_file=None,corrections_file=None,*,require_all_titles=False):
     root,p=project_at(directory);from lve_sources import check_sources
     check_sources(p);approval=p.get('approval');require(approval,'先保存用户的方案选择')
     proposal=read_json(root/'approved-proposal.json');t=read_json(root/'transcript.json')
     require(digest(proposal)==approval['proposal_sha256'] and digest(t)==p['transcript_sha256']==proposal['transcript_sha256'],'方案或转写已改变，先更新方案')
     units={u['id']:u for u in t['units']};candidates={c['id']:c for c in proposal['candidates']};corrections=correction_table(root,units,corrections_file)
+    if require_all_titles:
+        from lve_project import validate_candidate_titles
+        for cid in approval['selected']:
+            validate_candidate_titles(cid, candidates[cid], require_all=True)
     if selection_file:
         selections=read_json(selection_file)['outputs'];require({o['id']:o['unit_ids'] for o in selections}=={cid:candidates[cid]['unit_ids'] for cid in approval['selected']},'直接沿用确认方案；修改取舍先 propose')
     fps=float(Fraction(p['timeline']['fps']));policy=proposal['editing'];warnings=[]

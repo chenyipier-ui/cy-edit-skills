@@ -1,6 +1,6 @@
 # 安装与自动更新
 
-当前版本：**2.5.0**。先安装 Skill，再由 Agent 准备运行环境。[团队使用指南](USER_GUIDE.md)
+当前版本：**2.6.0**。先安装 Skill，再由 Agent 准备运行环境。[团队使用指南](USER_GUIDE.md)
 
 ## 1. 安装到 AI Agent
 
@@ -18,13 +18,13 @@ npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
 
 ## ZIP 安装
 
-从 [Gitee 国内下载页](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.5.0) 或 [GitHub 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.5.0) 下载：
+从 [Gitee 国内下载页](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.6.0) 或 [GitHub 发布页](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.6.0) 下载：
 
 | 文件 | 内容 |
 | --- | --- |
-| `cy-edit-shortvideo-v2.5.0.zip` | 单主题口播精剪 |
-| `cy-edit-longvideo-v2.5.0.zip` | 长内容整理与剪辑 |
-| `cy-edit-skills-v2.5.0.zip` | 两套 Skill 合集 |
+| `cy-edit-shortvideo-v2.6.0.zip` | 单主题口播精剪 |
+| `cy-edit-longvideo-v2.6.0.zip` | 长内容整理与剪辑 |
+| `cy-edit-skills-v2.6.0.zip` | 两套 Skill 合集 |
 | `SHA256SUMS` | 三个 ZIP 的校验值 |
 
 解压后，将 `cy-edit-shortvideo`、`cy-edit-longvideo` 文件夹放进 Agent 的 skills 目录，确保 `SKILL.md` 在该文件夹第一层。也可以让 Agent 按本机配置完成安装。保留完整目录，不要只复制 SKILL.md。

@@ -8,8 +8,16 @@
   "kind": "jianying_multisource_plan",
   "project": {"name": "口播_v1"},
   "sources": {"A": {"source_meta":"A/source_meta.json", "transcript":"A/transcript.json"}},
-  "content_title": ["先理清主线", "再删除重复"],
-  "cover_title": ["剪短一点", "就讲清楚了吗"],
+  "content_title": [
+    ["先理清主线", "再删除重复"],
+    ["口播保留推进信息", "剪掉同义复述"],
+    ["两句意思一样", "保留表达更完整的一句"]
+  ],
+  "cover_title": [
+    ["剪短一点", "就讲清楚了吗"],
+    ["同一句来回讲", "该留下哪一次"],
+    ["口播想讲明白", "哪种重复可以删"]
+  ],
   "chapters": [],
   "segments": [{"source":"A", "evidence_unit_ids":["u000001","u000002"], "reason":"完整表达主线，删掉后面的同义复述"}]
 }
@@ -26,7 +34,7 @@
 | cut | 可选 `[[开始毫秒,结束毫秒]]`，须真实词边界或已回听非语音区间 |
 | keep_pauses | true 保留该段有意停顿 |
 | needs_confirmation / confirm_note | 真有未解决问题才填；不编造“已核实” |
-| content_title / cover_title | 各两行，根据最终保留文稿写 |
+| content_title / cover_title | 根据最终保留文稿各写三组两行标题，首组显示，其余隐藏可切换 |
 | chapters | 超两分钟需给章节标题与 start；短片可 [] |
 
 先 `validate-multi --plan` 可只检查，不生成交付。`compile-multi` 也自动做相同检查，不需重复跑命令。文字事实有矛盾时不要只靠脚本通过。

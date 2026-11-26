@@ -4,6 +4,7 @@ import math
 import re
 import uuid
 from pathlib import Path
+from cy_packaging import title_options
 from lve_common import UserError,atomic_text,digest,identifier,now,project_at,read_json,require,sha_file,write_json
 from lve_sources import check_sources,collect_inputs,content_sample,ensure_v2,inspect_media,prepare_sources,quick_fingerprint,sources_digest
 
@@ -104,6 +105,13 @@ def import_transcript(directory,filename,source_id=None):
     return store_transcript(root,project,units,{'type':'imported','input_sha256':sha_file(file)})
 
 
+def validate_candidate_titles(candidate_id, packaging, *, require_all=False):
+    try:
+        title_options(packaging, require_all=require_all)
+    except ValueError as exc:
+        raise UserError(f'{candidate_id}：{exc}') from exc
+
+
 def normalize_proposal(project,transcript,raw):
     units={u['id']:u for u in transcript['units']};rows=raw.get('candidates');require(isinstance(rows,list) and rows,'至少提供一个候选')
     mode=raw.get('mode','single' if len(rows)==1 else 'multi');require(mode in ('single','multi','both'),'mode 使用 single、multi 或 both')
@@ -128,6 +136,8 @@ def normalize_proposal(project,transcript,raw):
             require(type(a) in (int,float) and type(b) in (int,float) and math.isfinite(a) and math.isfinite(b) and u['start']<=a<b<=u['end'],'段内删减需要原片内真实秒数且落在该句内')
         c['estimated_seconds']=round(sum(units[u]['end']-units[u]['start'] for u in refs),2)
         c.setdefault('status','ready');require(c['status'] in ('ready','needs_material','not_recommended'),'候选状态无效')
+        if 'content_title' in c or 'cover_title' in c:
+            validate_candidate_titles(c['id'], c)
         candidates.append(c)
     brief=project.get('brief',{});overrides=raw.get('editing',{})
     require(isinstance(overrides,dict) and set(overrides)<=set(DEFAULT_EDITING),'editing 包含不支持的字段，请按示例填写')

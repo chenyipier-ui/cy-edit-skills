@@ -14,7 +14,7 @@
 | feedback.json | 本轮原话和分项意见，日常只需一条 feedback |
 | experience-decisions.json | 对具体经验采用、跳过或待判断；采用写 application |
 
-候选五项：title 是标题；thesis 是一句话主线；unit_ids 是按成片顺序保留的编号；excluded 解释删了什么；reason 解释为什么这样组织。还要填写 content_title、cover_title（各两行）。超过两分钟填写 chapters；start 指向保留的段或原文编号。样例已给出这些字段。
+候选的 title 是项目名，thesis 是一句话主线，unit_ids 是按成片顺序保留的编号，excluded 解释删了什么，reason 解释为什么这样组织。content_title 和 cover_title 各写三组两行文案，首组默认显示。超过两分钟填写 chapters，start 指向保留的段或原文编号。
 
 顶层 reviewed_sources 是实际读完的来源编号，excluded_sources 是整份排除原因；不得由“转写结束”自动等同“Agent 已读完”。audience、purpose 可沿用 brief，也可在方案显式写入。
 

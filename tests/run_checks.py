@@ -78,7 +78,7 @@ def main():
          "sine=frequency=440:sample_rate=48000:duration=12", "-c:v", "libx264",
          "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac",
          "-af", "volume=0.02", "-shortest", out / "fixture.mp4"])
-    for script in ("smoke_components.py", "smoke_short.py", "smoke_review.py"):
+    for script in ("smoke_components.py", "smoke_short.py", "smoke_review.py", "test_title_options.py"):
         with (out / f"{script}.log").open("w", encoding="utf-8") as log:
             run([sys.executable, ROOT / "tests" / script], env=env, stdout=log, stderr=subprocess.STDOUT)
         print(f"PASS {script}", flush=True)

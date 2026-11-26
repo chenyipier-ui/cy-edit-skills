@@ -6,9 +6,9 @@
 
 **原始素材 → 全文理解与内容精剪 → 剪后复查 → 一个 FCPXML → 剪映继续制作**
 
-当前版本：**2.5.0** · [本次更新](CHANGELOG.md) · [完整使用指南](docs/USER_GUIDE.md)
+当前版本：**2.6.0** · [本次更新](CHANGELOG.md) · [完整使用指南](docs/USER_GUIDE.md)
 
-[GitHub 仓库](https://github.com/chenyipier-ui/cy-edit-skills) · [Gitee 国内仓库](https://gitee.com/chenyipier/cy-edit-skills) · [国内安装包](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.5.0)
+[GitHub 仓库](https://github.com/chenyipier-ui/cy-edit-skills) · [Gitee 国内仓库](https://gitee.com/chenyipier/cy-edit-skills) · [国内安装包](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.6.0)
 
 ## 两个 Skill 怎么选
 
@@ -23,7 +23,7 @@
 
 - **先理解内容，再决定删什么。** 结合全文区分重复与递进、举例、条件和纠正，保留原意、因果、指代与问答前提。
 - **剪完再复查。** 对剪后的实际音频重新转写，检查全文、重复表达与逻辑，回听可疑剪口；返修后重新复查。
-- **能接回剪映继续改。** 多条结果保存在同一个 FCPXML 的独立项目里。字幕、内容标题和封面标题参考都是可编辑文字，适合团队返修与商业交付。
+- **能接回剪映继续改。** 多条结果保存在同一个 FCPXML 的独立项目里。字幕和标题均可编辑。封面标题、常驻内容标题各有三稿，每组默认显示第一稿。
 - **把意见用于下一轮。** 区分“只改这条片”和“以后都这样剪”；长期偏好可以更新、撤销，两套 Skill 共用经验。
 - **保留团队自己的制作方式。** 提供基础字幕、标题和长内容进度条；配乐、音效、转场、调色、花式包装及成品导出在剪映里完成。
 
@@ -43,7 +43,7 @@ GitHub 访问不便时：
 npx skills add https://gitee.com/chenyipier/cy-edit-skills.git
 ```
 
-按提示选两套 Skill 和你使用的 Agent。默认装到当前项目，跨项目使用加 `-g`。CLI 需要 Node.js 22.20 或更高版本。也可以从 [GitHub](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.5.0) 或 [Gitee](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.5.0) 下载 ZIP，让 Agent 安装。
+按提示选两套 Skill 和你使用的 Agent。默认装到当前项目，跨项目使用加 `-g`。CLI 需要 Node.js 22.20 或更高版本。也可以从 [GitHub](https://github.com/chenyipier-ui/cy-edit-skills/releases/tag/v2.6.0) 或 [Gitee](https://gitee.com/chenyipier/cy-edit-skills/releases/tag/v2.6.0) 下载 ZIP，让 Agent 安装。
 
 **2. 让 Agent 准备环境并开始剪辑。** 首次使用自动准备独立 Python、媒体工具和识别模型，后续复用。把素材路径和目标直接告诉它：
 

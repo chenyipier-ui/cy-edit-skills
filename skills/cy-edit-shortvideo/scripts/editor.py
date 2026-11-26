@@ -2982,7 +2982,8 @@ def _prepare_body(args: argparse.Namespace, sources_dir: Path, workdir: Path, vi
         t=load_json(workdir/usable[first_key]['transcript'],'转写');us=transcript_units(t,int(t['duration_ms']))
         if us:starter=[{'source':first_key,'evidence_unit_ids':[us[0]['id']],'reason':'根据全片审阅结果更新本段取舍理由'}]
     template={'schema_version':SCHEMA_VERSION,'kind':MULTI_PLAN_KIND,'project':{'name':workdir.parent.name+'_v1'},'sources':usable,
-              'content_title':['根据成片写话题','根据成片写结论'],'cover_title':['根据成片写封面','必须由内容兑现'],'chapters':[],'segments':starter}
+              'content_title': [['', ''] for _ in range(3)], 'cover_title': [['', ''] for _ in range(3)],
+              'chapters': [], 'segments': starter}
     atomic_write_json(workdir / "剪辑计划_模板.json", template)
     registry.pop("pending_changes", None)
     atomic_write_json(registry_path, registry)
@@ -3029,12 +3030,16 @@ def _strict_checks(key: str, seg: dict[str, Any], units: list[dict[str, Any]]) -
                                    f"（{w['start_ms']}–{w['end_ms']}ms）中间，会吞字；挪到这个字之前或之后")
 
 
-def validate_multi(plan_path: Path) -> tuple[dict[str, Any], list[MultiItem], Fraction, dict[str, dict[str, Any]]]:
+def validate_multi(plan_path: Path, *, require_all_titles: bool = False) -> tuple[dict[str, Any], list[MultiItem], Fraction, dict[str, dict[str, Any]]]:
     plan_path = require_file(plan_path, "剪辑计划")
     plan = load_json(plan_path, "剪辑计划")
     ensure_schema_version(plan, "plan")
     if plan.get("kind") != MULTI_PLAN_KIND:
         raise CliError(f"plan.kind 必须为 {MULTI_PLAN_KIND!r}（照 剪辑计划_模板.json 写）")
+    try:
+        title_options(plan, require_all=require_all_titles)
+    except ValueError as exc:
+        raise CliError(str(exc)) from exc
     sources = plan.get("sources")
     if not isinstance(sources, dict) or not sources:
         raise CliError("plan.sources 必须是 {编号: {source_meta, transcript}} 对象（照模板写）")
@@ -3164,7 +3169,7 @@ def _canvas(plan: dict[str, Any], loaded: dict[str, dict[str, Any]]) -> tuple[An
 
 
 # Shared layout; its support status is documented separately from XML generation.
-from cy_packaging import layout_for
+from cy_packaging import layout_for, title_options
 
 def multi_fcpxml(plan: dict[str, Any], items: list[MultiItem], frame: Fraction, loaded: dict[str, dict[str, Any]],
                  captions: list[dict[str, Any]] | None = None, asset_dir: Path | None = None) -> tuple[str, list[str]]:
@@ -3213,8 +3218,21 @@ def multi_fcpxml(plan: dict[str, Any], items: list[MultiItem], frame: Fraction, 
     notes: list[str] = []
     if asset_dir is not None and width and height:
         from cy_packaging import decorate
-        hosts=[{'node':node,'id':it.segment['id'],'start':it.source_start+Fraction(int(it.source_meta.get('start_ms') or 0),1000),'offset':it.offset,'duration':it.duration,
-                'unit_ids':it.segment['evidence_unit_ids']} for node,it in clips]
+        hosts = []
+        for node, item in clips:
+            unit_offsets = {}
+            for uid in item.segment['evidence_unit_ids']:
+                unit = item.units_by_id[uid]
+                start = max(item.source_start, Fraction(unit['start_ms'], 1000))
+                end = min(item.source_end, Fraction(unit['end_ms'], 1000))
+                if start < end:
+                    local_frame = min(round((start - item.source_start) / frame), item.duration / frame - 1)
+                    offset = item.offset + local_frame * frame
+                    unit_offsets[uid] = offset
+                    unit_offsets[f'{item.key}:{uid}'] = offset
+            hosts.append({'node': node, 'id': item.segment['id'], 'offset': item.offset,
+                          'start': item.source_start + Fraction(int(item.source_meta.get('start_ms') or 0), 1000),
+                          'duration': item.duration, 'unit_offsets': unit_offsets})
         cs=[{'start':c['start_ms']/1000,'end':c['end_ms']/1000,'text':c['text']} for c in (captions or [])]
         try: notes=decorate(root,hosts,cs,plan,asset_dir,int(width),int(height),frame)
         except ValueError as exc: raise CliError(str(exc)) from exc
@@ -3440,7 +3458,7 @@ def command_compile_multi(args: argparse.Namespace) -> int:
     """剪辑计划 → 交付目录里只有一个 FCPXML（字幕、内容标题、封面标题参考、进度条都在里面）。
     字幕、试听与复查放在独立的编译记录目录，保留旧版本和工程依赖。"""
     plan_path = Path(args.plan).expanduser().resolve()
-    plan, items, frame, loaded = validate_multi(plan_path)
+    plan, items, frame, loaded = validate_multi(plan_path, require_all_titles=True)
     stats = plan.pop("_stats", {})
     name = sanitize_filename(plan["project"]["name"])
     out_dir = Path(args.out).expanduser().resolve()

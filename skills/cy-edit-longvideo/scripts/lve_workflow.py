@@ -50,6 +50,7 @@ def build(args,config):
         require(not args.corrections,'使用已核对计划时不另改字幕；先生成新计划再记录核对');plan=Path(args.plan)
     else:
         plan=root/'plans'/(args.version+'.json')
-        if not plan.exists():build_plan(root,plan,corrections_file=args.corrections)
+        if not plan.exists():
+            build_plan(root,plan,corrections_file=args.corrections,require_all_titles=True)
         else:require(not args.corrections,'本版本计划已存在；有新的改字请使用新版本号')
     return export_project(root,plan,args.version,config,skip_recheck=getattr(args,'skip_recheck',False),skip_reason=getattr(args,'recheck_skipped',None))

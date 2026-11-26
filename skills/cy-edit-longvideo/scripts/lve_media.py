@@ -95,10 +95,19 @@ def xml_document(project,output,asset_dir):
     event=ET.SubElement(ET.SubElement(xml,'library'),'event',name='长内容剪辑')
     node=ET.SubElement(event,'project',name=output['title']);seq=ET.SubElement(node,'sequence',format='projectFormat',duration=time_string(output['duration_frames']*frame),tcStart='0s',tcFormat='NDF',audioLayout='stereo',audioRate='48k')
     spine=ET.SubElement(seq,'spine');hosts=[]
+    first_caption = {}
+    for caption in output['captions']:
+        for uid in caption['unit_ids']:
+            first_caption.setdefault(uid, caption['in_frame'] * frame)
     for s in output['segments']:
         source=project['sources'][s['source_id']];m=source['working'];origin=Fraction(str(m['start_seconds']));source_start=origin+Fraction(round(Fraction(str(s['in_seconds']))*fps),1)/fps  # in_seconds 来自 帧号/fps 的浮点：还原到帧，避免 12366666666666667/1000000000000000s 这类 FCP 读不了的时间
         clip=ET.SubElement(spine,'asset-clip',ref=refs[s['source_id']],name=s['id'],offset=time_string(s['timeline_in_frame']*frame),start=time_string(source_start),duration=time_string(s['duration_frames']*frame))
-        hosts.append({'node':clip,'id':s['id'],'unit_ids':s['unit_ids'],'start':source_start,'offset':s['timeline_in_frame']*frame,'duration':s['duration_frames']*frame})
+        offset = s['timeline_in_frame'] * frame
+        duration = s['duration_frames'] * frame
+        unit_offsets = {uid: first_caption[uid] for uid in s['unit_ids']
+                        if uid in first_caption and offset <= first_caption[uid] < offset + duration}
+        hosts.append({'node': clip, 'id': s['id'], 'unit_ids': s['unit_ids'], 'start': source_start,
+                      'offset': offset, 'duration': duration, 'unit_offsets': unit_offsets})
         if len(m['audios'])>1:
             chosen=source['audio_stream_index'];start_channel=1
             for track in m['audios']:
@@ -122,6 +131,9 @@ def export_project(directory,plan_file,version,config,skip_recheck=False,skip_re
     identifier(version);root,p,plan,warnings=validate_plan(directory,plan_file);destination=root/'deliveries'/version
     require(not destination.exists(),'交付版本已存在，请使用新版本号')
     records=root/'records'/version;require(not records.exists(),'编译记录版本已存在，请用新版本号')
+    from lve_project import validate_candidate_titles
+    for output in plan['outputs']:
+        validate_candidate_titles(output['id'], output.get('packaging', {}), require_all=True)
     records.mkdir(parents=True);destination.parent.mkdir(parents=True,exist_ok=True)
     from lve_feedback_flow import experience
     from lve_common import shared_experience_data
@@ -162,7 +174,7 @@ def export_project(directory,plan_file,version,config,skip_recheck=False,skip_re
     finally:
         if stage.exists():shutil.rmtree(stage)
     pending=('## '+PENDING_LISTEN+'\n\n原因：'+report['recheck']['reason']+'。没有做成片试听复测与再转写，不能当作复查通过；交付前须实际回听，或环境就绪后用新版本号重新 build。\n\n') if skip_recheck else ''
-    atomic_text(records/'导入与依赖.md','# 导入说明\n\n'+pending+'剪映首页本地草稿菜单 → 导入 PR 或 FCP 工程，选择交付目录唯一的 .fcpxml。多条方案在一个交换文件里保留多个独立项目；目标软件能否导入多个项目需看实测记录。\n\n所有文字是可编辑标题；封面标题参考只在前 5 秒。原片和 assets 下的纯色进度条图片必须保留，单个 XML 不内嵌视频。换电脑须迁移并重新关联素材。内部字幕、试听与复查不作为最终交付文件。\n')
+    atomic_text(records/'导入与依赖.md','# 导入说明\n\n'+pending+'剪映首页本地草稿菜单 → 导入 PR 或 FCP 工程，选择交付目录唯一的 .fcpxml。多条方案在一个交换文件里保留多个独立项目；目标软件能否导入多个项目需看实测记录。\n\n所有文字是可编辑标题；封面标题参考只在前 5 秒。原片和 assets 下的进度条图片必须保留，单个 XML 不内嵌视频。换电脑须迁移并重新关联素材。内部字幕、试听与复查不作为最终交付文件。\n')
     p['last_delivery']={'version':version,'path':str(destination),'status':report['status'],'records':str(records)}
     if skip_recheck:p['last_delivery']['recheck']=PENDING_LISTEN
     write_json(root/'project.json',p)
